@@ -86,11 +86,12 @@ fn solution_variables(q : Query) -> Array[String] {
 }
 
 ///|
-fn build_solutions(q : Query, input : Array[Binding], budget : Budget)
+fn build_solutions(q : Query, input : Array[GroupedRow], budget : Budget)
   -> Array[Solution] raise QueryError {
   let variables = solution_variables(q)
   let solutions = []
-  for row in input {
+  for item in input {
+    let row = item.row
     let projected = Binding::empty()
     let source = row.copy()
     if q.all {
@@ -100,16 +101,16 @@ fn build_solutions(q : Query, input : Array[Binding], budget : Budget)
       }
     } else {
       for p in q.projections {
-        let ctx = EvalContext::{ row, budget, group: None }
+        let ctx = EvalContext::{ row, budget, group: item.members }
         if p.expression.maybe(ctx) is Some(t) {
           projected.values[p.variable] = t
           source.values[p.variable] = t
         }
       }
     }
-    let ctx = EvalContext::{ row: source, budget, group: None }
+    let ctx = EvalContext::{ row: source, budget, group: item.members }
     let keys = q.order.map(item => item.0.maybe(ctx))
-    solutions.push({ source, projected, keys, group: None })
+    solutions.push({ source, projected, keys, group: item.members })
   }
   let ordered = if q.order.length() == 0 { solutions }
     else { sort_solutions(solutions, q.order, budget) }

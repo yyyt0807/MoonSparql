@@ -139,12 +139,9 @@ pub fn PreparedQuery::execute(self : PreparedQuery, data : Dataset)
   -> QueryResult raise QueryError {
   let budget = Budget::new(self.limits)
   let q = self.query
-  if q.group_by.length() > 0 || q.having.length() > 0 {
-    raise Unsupported(0, "grouped solution execution")
-  }
   if data.size() > self.limits.max_triples { raise Resource("dataset quads") }
   let rows = evaluate_group(data, q.group, [Binding::empty()], None, budget)
-  let solutions = build_solutions(q, rows, budget)
+  let solutions = build_solutions(q, group_rows(q, rows, budget), budget)
   if q.form == Construct { raise Unsupported(0, "CONSTRUCT execution") }
   { variables: solution_variables(q),
     bindings: if q.form == Select { solutions.map(s => s.projected) } else { [] },

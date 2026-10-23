@@ -133,7 +133,7 @@ fn Expr::eval(self : Expr, context : EvalContext) -> Term raise QueryError {
       }
     }
     Call(name, args) => evaluate_call(name, args, context)
-    Aggregate(_, _, _) => raise Evaluation("aggregate outside grouping")
+    Aggregate(name, e, distinct) => aggregate_value(name, e, distinct, context)
     Exists(_, _) => raise Evaluation("EXISTS needs graph execution")
   }
 }
