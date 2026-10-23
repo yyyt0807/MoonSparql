@@ -101,7 +101,8 @@ fn Lexer::quoted(self : Lexer, quote : Char) -> String raise QueryError {
 fn Lexer::number(self : Lexer) -> String raise QueryError {
   let start = self.i
   while self.peek() is Some(c) && digit(c) { self.i += 1 }
-  if self.peek() == Some('.') {
+  if self.peek() == Some('.') && self.peek(delta=1) is Some(after) &&
+    (digit(after) || after == 'e' || after == 'E') {
     self.i += 1
     while self.peek() is Some(c) && digit(c) { self.i += 1 }
   }
