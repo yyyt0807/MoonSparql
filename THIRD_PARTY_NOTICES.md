@@ -1,0 +1,15 @@
+# Sources and licenses
+
+- Original MoonBit query implementation, assisted by AI and subject to owner
+  review. No implementation is copied from RDFLib, Jena, Oxigraph or other query
+  engines. Synthetic examples and test facts are authored for this repository.
+- SPARQL syntax and semantics are informed by the W3C Recommendation:
+  https://www.w3.org/TR/sparql11-query/ . Normative prose is referenced, not copied.
+- RDF input uses `thy1016/moonttl@0.3.0` (Apache-2.0):
+  https://www.gitlink.org.cn/thy7/mbt.ttl . Its parser is a dependency, not an
+  original contribution claimed by this project.
+- MoonBit core, async and quickcheck are Apache-2.0. The latter module versions
+  are explicitly selected for current toolchain compatibility; query execution
+  does not use a network service or async runtime.
+- The Windows path adapter, if needed, is generic local tooling originally
+  developed in the owner's MoonUriTemplate repository, not query engine code.

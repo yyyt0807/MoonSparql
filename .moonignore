@@ -1,0 +1,12 @@
+_local/
+.git/
+.github/
+_build/
+.mooncakes/
+.venv/
+__pycache__/
+*申报书*
+*报告*
+*report*
+*review*
+*summary*
