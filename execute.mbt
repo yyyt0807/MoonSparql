@@ -55,6 +55,10 @@ fn Group::variables(self : Group, names : Map[String, Bool]) -> Unit {
 ///|
 fn join_triple(data : Dataset, input : Array[Binding], subject : Slot,
   path : Path, object : Slot, graph : Term?, budget : Budget) -> Array[Binding] raise QueryError {
+  match path {
+    Predicate(_) | PathVar(_) => ()
+    _ => return join_property_path(data, input, subject, path, object, graph, budget)
+  }
   let pslot = match path {
     Predicate(p) => Fixed(p)
     PathVar(name) => Variable(name)

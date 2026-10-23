@@ -13,7 +13,9 @@ pub fn PreparedQuery::form(self : PreparedQuery) -> String {
 fn Parser::triples(self : Parser) -> Array[Pattern] raise QueryError {
   let s = self.slot()
   match s {
-    Fixed(t) => if t.kind == LiteralKind { raise Syntax(self.position(), "literal subject") }
+    Fixed(t) => if self.template_mode && t.kind == LiteralKind {
+      raise Syntax(self.position(), "literal template subject")
+    }
     _ => ()
   }
   let result = []
