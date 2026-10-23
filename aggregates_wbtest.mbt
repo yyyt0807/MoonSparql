@@ -1,6 +1,6 @@
 ///|
 test "implicit aggregation creates one group even when no rows match" {
-  let q = prepare("SELECT (COUNT(*) AS ?n) (SUM(?v) AS ?s) (AVG(?v) AS ?a) {?s <urn:absent> ?v}")
+  let q = prepare("SELECT (COUNT(*) AS ?n) (SUM(?v) AS ?s) (AVG(?v) AS ?a) {?subject <urn:absent> ?v}")
   let r = q.execute(sample_data())
   assert_eq(r.rows().length(), 1)
   assert_eq(r.rows()[0].get("n"), Some(integer(0)))

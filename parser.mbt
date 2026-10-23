@@ -216,6 +216,8 @@ pub fn prepare(source : String, limits? : Limits = Limits::default())
       saw_offset = true
     } else { raise Unsupported(p.position(), "query modifier or trailing input") }
   }
-  { query: { form, projections, all, distinct, group, group_by, having, order,
-      offset, limit, template }, limits }
+  let query = Query::{ form, projections, all, distinct, group, group_by, having, order,
+      offset, limit, template }
+  validate_query(query)
+  { query, limits }
 }
