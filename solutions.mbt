@@ -31,6 +31,9 @@ fn order_terms(a : Term?, b : Term?, budget : Budget) -> Int32 raise QueryError 
       if x.kind == IriKind || x.kind == BlankKind {
         return codepoint_compare(x.lexical, y.lexical)
       }
+      let class_x = literal_order_class(x)
+      let class_y = literal_order_class(y)
+      if class_x != class_y { return class_x.compare(class_y) }
       let cmp = value_compare(x, y, budget.limits.max_numeric_digits) catch {
         Evaluation(_) => None
         e => raise e
@@ -42,6 +45,22 @@ fn order_terms(a : Term?, b : Term?, budget : Budget) -> Int32 raise QueryError 
     }
     _ => 0
   }
+}
+
+///|
+fn literal_order_class(t : Term) -> Int {
+  if numeric_type(t) {
+    let value = try Some(numeric(t, 4096)) catch { _ => None }
+    return match value {
+      Some(Floating(v)) if v.is_nan() => 1
+      Some(_) => 0
+      None => 6
+    }
+  }
+  if t.datatype == xsd_namespace()+"boolean" { 2 }
+  else if t.datatype == xsd_namespace()+"string" { 3 }
+  else if t.language is Some(_) { 4 }
+  else { 5 }
 }
 
 ///|
