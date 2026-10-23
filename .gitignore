@@ -9,6 +9,8 @@ __pycache__/
 *report*
 *review*
 *summary*
+!/examples/research_summary/
+!/examples/research_summary/**
 /.env
 /.env.*
 *.zip
