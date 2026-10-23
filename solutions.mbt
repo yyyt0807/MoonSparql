@@ -22,6 +22,9 @@ fn order_terms(a : Term?, b : Term?, budget : Budget) -> Int raise QueryError {
   if ra != rb { return ra.compare(rb) }
   match (a, b) {
     (Some(x), Some(y)) => {
+      if x.kind == IriKind || x.kind == BlankKind {
+        return codepoint_compare(x.lexical, y.lexical)
+      }
       let cmp = try value_compare(x, y, budget.limits.max_numeric_digits) catch {
         Evaluation(_) => None
         e => raise e
@@ -33,6 +36,18 @@ fn order_terms(a : Term?, b : Term?, budget : Budget) -> Int raise QueryError {
     }
     _ => 0
   }
+}
+
+///|
+fn codepoint_compare(a : String, b : String) -> Int {
+  let x = a.to_array()
+  let y = b.to_array()
+  let n = if x.length() < y.length() { x.length() } else { y.length() }
+  for i = 0; i < n; i = i + 1 {
+    let cmp = x[i].to_int().compare(y[i].to_int())
+    if cmp != 0 { return cmp }
+  }
+  x.length().compare(y.length())
 }
 
 ///|
@@ -101,7 +116,7 @@ fn build_solutions(q : Query, input : Array[GroupedRow], budget : Budget)
       }
     } else {
       for p in q.projections {
-        let ctx = EvalContext::{ row, budget, group: item.members }
+        let ctx = EvalContext::{ row: source, budget, group: item.members }
         if p.expression.maybe(ctx) is Some(t) {
           projected.values[p.variable] = t
           source.values[p.variable] = t

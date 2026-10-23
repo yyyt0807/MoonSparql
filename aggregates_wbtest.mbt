@@ -5,7 +5,7 @@ test "implicit aggregation creates one group even when no rows match" {
   assert_eq(r.rows().length(), 1)
   assert_eq(r.rows()[0].get("n"), Some(integer(0)))
   assert_eq(r.rows()[0].get("s"), Some(integer(0)))
-  assert_eq(r.rows()[0].get("a"), None)
+  assert_eq(r.rows()[0].get("a"), Some(integer(0)))
 }
 
 ///|

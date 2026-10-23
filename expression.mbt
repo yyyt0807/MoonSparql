@@ -46,7 +46,9 @@ fn value_equal(a : Term, b : Term, digits : Int) -> Bool raise QueryError {
   else if a.datatype == xsd_namespace()+"boolean" && b.datatype == a.datatype {
     ebv(a, digits) == ebv(b, digits)
   } else if a.datatype == xsd_namespace()+"string" || a.language is Some(_) {
-    a.datatype == b.datatype && a.language == b.language && a.lexical == b.lexical
+    if b.datatype == xsd_namespace()+"string" || b.language is Some(_) {
+      a.datatype == b.datatype && a.language == b.language && a.lexical == b.lexical
+    } else { raise Evaluation("incomparable literal values") }
   } else if a == b { true }
   else { raise Evaluation("incomparable literal values") }
 }
@@ -56,7 +58,7 @@ fn value_compare(a : Term, b : Term, digits : Int) -> Int? raise QueryError {
   if numeric_type(a) && numeric_type(b) { numeric(a, digits).compare(numeric(b, digits)) }
   else if a.kind == LiteralKind && b.kind == LiteralKind &&
     a.datatype == xsd_namespace()+"string" && b.datatype == a.datatype {
-    Some(a.lexical.compare(b.lexical))
+    Some(codepoint_compare(a.lexical, b.lexical))
   } else if a.datatype == xsd_namespace()+"boolean" && b.datatype == a.datatype {
     let x = ebv(a, digits)
     let y = ebv(b, digits)

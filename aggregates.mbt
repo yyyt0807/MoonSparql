@@ -66,7 +66,7 @@ fn aggregate_value(name : String, expression : Expr?, distinct : Bool,
         numeric(value, ctx.budget.limits.max_numeric_digits), ctx.budget.limits.max_numeric_digits)
     }
     if name == "SUM" { return total }
-    if count == 0 { raise Evaluation("AVG of empty group") }
+    if count == 0 { return integer(0) }
     return numeric_op("/", numeric(total, ctx.budget.limits.max_numeric_digits),
       numeric(integer(count), ctx.budget.limits.max_numeric_digits), ctx.budget.limits.max_numeric_digits)
   }
