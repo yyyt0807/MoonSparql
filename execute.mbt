@@ -85,11 +85,27 @@ fn evaluate_group(data : Dataset, group : Group, input : Array[Binding],
   for pattern in group.patterns {
     rows = match pattern {
       Triple(s, p, o) => join_triple(data, rows, s, p, o, graph, budget)
-      Nested(g) => evaluate_group(data, g, rows, graph, budget)
+      Nested(g) => compatible_join(rows,
+        evaluate_group(data, g, [Binding::empty()], graph, budget), budget)
+      Optional(g) => optional_join(data, rows, g, graph, budget)
+      Filter(_) => rows
+      Bind(expression, name) => {
+        let output = []
+        for row in rows {
+          let next = row.copy()
+          if next.get(name) is Some(_) { raise Evaluation("BIND variable already in scope") }
+          if expression.maybe({ row, budget, group: None }) is Some(value) {
+            next.values[name] = value
+          }
+          output.push(next)
+          budget.rows(output.length())
+        }
+        output
+      }
       _ => raise Unsupported(0, "graph operator execution")
     }
   }
-  rows
+  apply_filters(rows, group, budget)
 }
 
 ///|
