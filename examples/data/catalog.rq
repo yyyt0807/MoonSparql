@@ -1,0 +1,4 @@
+PREFIX e: <urn:catalog:>
+SELECT ?dataset ?publisher
+WHERE { ?dataset e:topic "climate"; e:publisher ?publisher }
+ORDER BY ?publisher

@@ -1,0 +1,7 @@
+@prefix e: <urn:catalog:> .
+e:weather e:topic "climate" .
+e:weather e:publisher "Institute A" .
+e:traffic e:topic "transport" .
+e:traffic e:publisher "City B" .
+e:air e:topic "climate" .
+e:air e:publisher "City B" .
