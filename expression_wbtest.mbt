@@ -1,7 +1,12 @@
 ///|
 fn expression_value(source : String) -> Term raise QueryError {
-  Parser::new(source, Limits::default()).expression().eval({ row: Binding::empty(),
-    budget: Budget::new(Limits::default()), group: None })
+  Parser::new(source, Limits::default())
+  .expression()
+  .eval({
+    row: Binding::empty(),
+    budget: Budget::new(Limits::default()),
+    group: None,
+  })
 }
 
 ///|
@@ -28,9 +33,15 @@ test "term equality numeric values and sameTerm remain distinct" {
 
 ///|
 test "string builtins preserve language and count Unicode scalars" {
-  assert_eq(expression_value("LCASE('HELLO'@EN)"), language_literal("hello", "en"))
+  assert_eq(
+    expression_value("LCASE('HELLO'@EN)"),
+    language_literal("hello", "en"),
+  )
   assert_eq(expression_value("STRLEN('α🙂')").lexical(), "2")
-  assert_eq(expression_value("CONCAT('a'@en,'b'@en)"), language_literal("ab", "en"))
+  assert_eq(
+    expression_value("CONCAT('a'@en,'b'@en)"),
+    language_literal("ab", "en"),
+  )
   assert_eq(expression_value("LANGMATCHES('en-US','en')"), boolean(true))
   assert_true(rejects(() => expression_value("CONTAINS('a','b'@en)")))
   assert_eq(expression_value("ROUND(-1.5)").lexical(), "-1.0")

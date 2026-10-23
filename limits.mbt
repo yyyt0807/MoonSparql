@@ -1,8 +1,8 @@
 ///|
 pub(all) suberror QueryError {
   InvalidTerm(String)
-  Syntax(Int, String)
-  Unsupported(Int, String)
+  Syntax(Int32, String)
+  Unsupported(Int32, String)
   Resource(String)
   Evaluation(String)
   InvalidInput(String)
@@ -22,15 +22,15 @@ pub fn QueryError::message(self : QueryError) -> String {
 
 ///|
 pub(all) struct Limits {
-  max_triples : Int
-  max_query_chars : Int
-  max_tokens : Int
-  max_depth : Int
-  max_steps : Int
-  max_bindings : Int
-  max_results : Int
-  max_path_pairs : Int
-  max_numeric_digits : Int
+  max_triples : Int32
+  max_query_chars : Int32
+  max_tokens : Int32
+  max_depth : Int32
+  max_steps : Int32
+  max_bindings : Int32
+  max_results : Int32
+  max_path_pairs : Int32
+  max_numeric_digits : Int32
 } derive(Eq, @debug.Debug)
 
 ///|
@@ -50,34 +50,46 @@ pub fn Limits::default() -> Limits {
 
 ///|
 fn Limits::validate(self : Limits) -> Unit raise QueryError {
-  let values = [self.max_triples, self.max_query_chars, self.max_tokens,
-    self.max_depth, self.max_steps, self.max_bindings, self.max_results,
-    self.max_path_pairs, self.max_numeric_digits]
+  let values = [
+    self.max_triples,
+    self.max_query_chars,
+    self.max_tokens,
+    self.max_depth,
+    self.max_steps,
+    self.max_bindings,
+    self.max_results,
+    self.max_path_pairs,
+    self.max_numeric_digits,
+  ]
   for n in values {
-    if n <= 0 { raise InvalidInput("limits must be positive") }
+    if n <= 0 {
+      raise InvalidInput("limits must be positive")
+    }
   }
-  if self.max_depth > 256 { raise InvalidInput("max_depth exceeds 256") }
+  if self.max_depth > 256 {
+    raise InvalidInput("max_depth exceeds 256")
+  }
   if self.max_numeric_digits > 4096 {
     raise InvalidInput("numeric digit budget exceeds 4096")
   }
 }
 
 ///|
-struct Budget {
+priv struct Budget {
   limits : Limits
-  mut steps : Int
-  mut peak_bindings : Int
-  mut path_pairs : Int
+  mut steps : Int32
+  mut peak_bindings : Int32
+  mut path_pairs : Int32
 }
 
 ///|
 fn Budget::new(limits : Limits) -> Budget raise QueryError {
   limits.validate()
-  { limits, steps: 0, peak_bindings: 0, path_pairs: 0 }
+  { limits, steps: 0, peak_bindings: 0, path_pairs: 0, }
 }
 
 ///|
-fn Budget::tick(self : Budget, n? : Int = 1) -> Unit raise QueryError {
+fn Budget::tick(self : Budget, n~ : Int32 = 1) -> Unit raise QueryError {
   if n < 0 || n > self.limits.max_steps - self.steps {
     raise Resource("execution steps")
   }
@@ -85,9 +97,13 @@ fn Budget::tick(self : Budget, n? : Int = 1) -> Unit raise QueryError {
 }
 
 ///|
-fn Budget::rows(self : Budget, n : Int) -> Unit raise QueryError {
-  if n > self.limits.max_bindings { raise Resource("intermediate bindings") }
-  if n > self.peak_bindings { self.peak_bindings = n }
+fn Budget::rows(self : Budget, n : Int32) -> Unit raise QueryError {
+  if n > self.limits.max_bindings {
+    raise Resource("intermediate bindings")
+  }
+  if n > self.peak_bindings {
+    self.peak_bindings = n
+  }
 }
 
 ///|
@@ -97,3 +113,12 @@ fn Budget::path(self : Budget) -> Unit raise QueryError {
   }
   self.path_pairs += 1
 }
+
+///|
+pub extend QueryError with @debug.Debug::{to_repr}
+
+///|
+pub extend Limits with Eq::{equal, not_equal}
+
+///|
+pub extend Limits with @debug.Debug::{to_repr}
