@@ -1,0 +1,131 @@
+///|
+priv struct Solution {
+  source : Binding
+  projected : Binding
+  keys : Array[Term?]
+  group : Array[Binding]?
+}
+
+///|
+fn term_rank(t : Term?) -> Int {
+  match t {
+    None => 0
+    Some(t) => match t.kind { BlankKind => 1; IriKind => 2; LiteralKind => 3 }
+  }
+}
+
+///|
+fn order_terms(a : Term?, b : Term?, budget : Budget) -> Int raise QueryError {
+  budget.tick()
+  let ra = term_rank(a)
+  let rb = term_rank(b)
+  if ra != rb { return ra.compare(rb) }
+  match (a, b) {
+    (Some(x), Some(y)) => {
+      let cmp = try value_compare(x, y, budget.limits.max_numeric_digits) catch {
+        Evaluation(_) => None
+        e => raise e
+      }
+      match cmp {
+        Some(v) => v
+        None => x.key().compare(y.key())
+      }
+    }
+    _ => 0
+  }
+}
+
+///|
+fn solution_compare(a : Solution, b : Solution, order : Array[(Expr, Bool)],
+  budget : Budget) -> Int raise QueryError {
+  for i, item in order {
+    let cmp = order_terms(a.keys[i], b.keys[i], budget)
+    if cmp != 0 { return if item.1 { -cmp } else { cmp } }
+  }
+  0
+}
+
+///|
+fn sort_solutions(rows : Array[Solution], order : Array[(Expr, Bool)], budget : Budget)
+  -> Array[Solution] raise QueryError {
+  // Iterative stable mergesort avoids quadratic ORDER BY and recursive stack use.
+  let mut current = rows.copy()
+  let n = rows.length()
+  let mut width = 1
+  while width < n {
+    let next = []
+    let mut start = 0
+    while start < n {
+      let middle = if width > n - start { n } else { start + width }
+      let end = if width > n - middle { n } else { middle + width }
+      let mut a = start
+      let mut b = middle
+      while a < middle || b < end {
+        if b >= end || (a < middle && solution_compare(current[a], current[b], order, budget) <= 0) {
+          next.push(current[a]); a += 1
+        } else { next.push(current[b]); b += 1 }
+      }
+      start = end
+    }
+    current = next
+    if width > n / 2 { break }
+    width *= 2
+  }
+  current
+}
+
+///|
+fn solution_variables(q : Query) -> Array[String] {
+  if q.all {
+    let names = {}
+    q.group.variables(names)
+    let result = names.keys().to_array()
+    result.sort()
+    result
+  } else { q.projections.map(p => p.variable) }
+}
+
+///|
+fn build_solutions(q : Query, input : Array[Binding], budget : Budget)
+  -> Array[Solution] raise QueryError {
+  let variables = solution_variables(q)
+  let solutions = []
+  for row in input {
+    let projected = Binding::empty()
+    let source = row.copy()
+    if q.all {
+      for name in variables {
+        budget.tick()
+        if row.get(name) is Some(t) { projected.values[name] = t }
+      }
+    } else {
+      for p in q.projections {
+        let ctx = EvalContext::{ row, budget, group: None }
+        if p.expression.maybe(ctx) is Some(t) {
+          projected.values[p.variable] = t
+          source.values[p.variable] = t
+        }
+      }
+    }
+    let ctx = EvalContext::{ row: source, budget, group: None }
+    let keys = q.order.map(item => item.0.maybe(ctx))
+    solutions.push({ source, projected, keys, group: None })
+  }
+  let ordered = if q.order.length() == 0 { solutions }
+    else { sort_solutions(solutions, q.order, budget) }
+  let seen : Map[String, Bool] = {}
+  let result = []
+  let mut offset = q.offset
+  for solution in ordered {
+    if q.distinct {
+      let key = solution.projected.key(variables)
+      if seen.get(key) is Some(_) { continue }
+      seen[key] = true
+    }
+    if offset > 0 { offset -= 1; continue }
+    match q.limit { Some(n) => if result.length() >= n { break }; None => () }
+    if result.length() >= budget.limits.max_results { raise Resource("result rows") }
+    result.push(solution)
+  }
+  result
+}

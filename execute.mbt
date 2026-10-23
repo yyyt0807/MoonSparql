@@ -135,39 +135,16 @@ pub fn PreparedQuery::execute(self : PreparedQuery, data : Dataset)
   -> QueryResult raise QueryError {
   let budget = Budget::new(self.limits)
   let q = self.query
-  if q.distinct || q.group_by.length() > 0 || q.having.length() > 0 ||
-    q.order.length() > 0 || q.offset != 0 || q.limit is Some(_) {
-    raise Unsupported(0, "solution modifier execution")
+  if q.group_by.length() > 0 || q.having.length() > 0 {
+    raise Unsupported(0, "grouped solution execution")
   }
   if data.size() > self.limits.max_triples { raise Resource("dataset quads") }
   let rows = evaluate_group(data, q.group, [Binding::empty()], None, budget)
-  let variables = if q.all {
-    let names = {}
-    q.group.variables(names)
-    let names = names.keys().to_array()
-    names.sort()
-    names
-  } else { q.projections.map(p => p.variable) }
-  let selected = []
-  if q.form == Select {
-    for row in rows {
-      let next = Binding::empty()
-      if q.all {
-        for name in variables {
-          if row.get(name) is Some(t) { next.values[name] = t }
-        }
-      } else {
-        for p in q.projections {
-          let ctx = EvalContext::{ row, budget, group: None }
-          if p.expression.maybe(ctx) is Some(t) { next.values[p.variable] = t }
-        }
-      }
-      selected.push(next)
-      if selected.length() > self.limits.max_results { raise Resource("result rows") }
-    }
-  } else if q.form == Construct { raise Unsupported(0, "CONSTRUCT execution") }
-  { variables, bindings: selected,
-    answer: if q.form == Ask { Some(rows.length() > 0) } else { None },
+  let solutions = build_solutions(q, rows, budget)
+  if q.form == Construct { raise Unsupported(0, "CONSTRUCT execution") }
+  { variables: solution_variables(q),
+    bindings: if q.form == Select { solutions.map(s => s.projected) } else { [] },
+    answer: if q.form == Ask { Some(solutions.length() > 0) } else { None },
     constructed: [], stats: { steps: budget.steps, peak_bindings: budget.peak_bindings,
       path_pairs: budget.path_pairs } }
 }
