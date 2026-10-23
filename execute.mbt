@@ -142,10 +142,12 @@ pub fn PreparedQuery::execute(self : PreparedQuery, data : Dataset)
   if data.size() > self.limits.max_triples { raise Resource("dataset quads") }
   let rows = evaluate_group(data, q.group, [Binding::empty()], None, budget)
   let solutions = build_solutions(q, group_rows(q, rows, budget), budget)
-  if q.form == Construct { raise Unsupported(0, "CONSTRUCT execution") }
+  let constructed = if q.form == Construct {
+    construct_graph(data, solutions, q.template, budget)
+  } else { [] }
   { variables: solution_variables(q),
     bindings: if q.form == Select { solutions.map(s => s.projected) } else { [] },
     answer: if q.form == Ask { Some(solutions.length() > 0) } else { None },
-    constructed: [], stats: { steps: budget.steps, peak_bindings: budget.peak_bindings,
+    constructed, stats: { steps: budget.steps, peak_bindings: budget.peak_bindings,
       path_pairs: budget.path_pairs } }
 }
