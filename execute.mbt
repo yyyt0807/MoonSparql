@@ -102,7 +102,29 @@ fn evaluate_group(data : Dataset, group : Group, input : Array[Binding],
         }
         output
       }
-      _ => raise Unsupported(0, "graph operator execution")
+      Union(groups) => {
+        let right = []
+        for g in groups {
+          let alternatives = evaluate_group(data, g, [Binding::empty()], graph, budget)
+          budget.rows(right.length() + alternatives.length())
+          right.append(alternatives)
+        }
+        compatible_join(rows, right, budget)
+      }
+      Values(names, table) => {
+        let right = []
+        for cells in table {
+          let binding = Binding::empty()
+          for i, name in names {
+            if cells[i] is Some(t) { binding.values[name] = t }
+          }
+          right.push(binding)
+        }
+        compatible_join(rows, right, budget)
+      }
+      Graph(slot, g) => named_graph_join(data, rows, slot, g, budget)
+      Minus(g) => minus_join(rows,
+        evaluate_group(data, g, [Binding::empty()], graph, budget), budget)
     }
   }
   apply_filters(rows, group, budget)
