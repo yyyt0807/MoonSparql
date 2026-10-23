@@ -1,2 +1,5 @@
-import { "local/moonsparql" @q }
-options("is-main": true)
+import {
+  "local/moonsparql" @q,
+}
+
+pkgtype(kind: "executable")

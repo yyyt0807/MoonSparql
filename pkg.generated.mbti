@@ -1,0 +1,136 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "local/moonsparql"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn blank(String) -> Term raise QueryError
+
+pub fn iri(String) -> Term raise QueryError
+
+pub fn language_literal(String, String) -> Term raise QueryError
+
+pub fn literal(String) -> Term
+
+pub fn prepare(String, limits? : Limits) -> PreparedQuery raise QueryError
+
+pub fn quad(Term, Term, Term, graph? : Term) -> Quad raise QueryError
+
+pub fn rdf_namespace() -> String
+
+pub fn typed_literal(String, String) -> Term raise QueryError
+
+pub fn validate_result_json(String) -> Bool
+
+pub fn xsd_namespace() -> String
+
+// Errors
+pub(all) suberror QueryError {
+  InvalidTerm(String)
+  Syntax(Int32, String)
+  Unsupported(Int32, String)
+  Resource(String)
+  Evaluation(String)
+  InvalidInput(String)
+} derive(@debug.Debug)
+pub fn QueryError::message(Self) -> String
+pub fn QueryError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct Binding {
+  // private fields
+}
+pub fn Binding::get(Self, String) -> Term?
+pub fn Binding::length(Self) -> Int32
+pub fn Binding::variables(Self) -> Array[String]
+
+pub struct Dataset {
+  // private fields
+}
+pub fn Dataset::from_quads(Array[Quad], limits? : Limits) -> Self raise QueryError
+pub fn Dataset::from_turtle(String, limits? : Limits) -> Self raise QueryError
+pub fn Dataset::graph_names(Self) -> Array[Term]
+pub fn Dataset::length(Self) -> Int32
+pub fn Dataset::matching(Self, subject? : Term, predicate? : Term, object? : Term, graph? : Term, limits? : Limits) -> Array[Quad] raise QueryError
+pub fn Dataset::quads(Self) -> Array[Quad]
+
+pub(all) struct ExecutionStats {
+  steps : Int32
+  peak_bindings : Int32
+  path_pairs : Int32
+} derive(Eq, @debug.Debug)
+pub fn ExecutionStats::equal(Self, Self) -> Bool
+pub fn ExecutionStats::not_equal(Self, Self) -> Bool
+pub fn ExecutionStats::to_repr(Self) -> @debug.Repr
+
+pub(all) struct Limits {
+  max_triples : Int32
+  max_query_chars : Int32
+  max_tokens : Int32
+  max_depth : Int32
+  max_steps : Int32
+  max_bindings : Int32
+  max_results : Int32
+  max_path_pairs : Int32
+  max_numeric_digits : Int32
+} derive(Eq, @debug.Debug)
+pub fn Limits::default() -> Self
+pub fn Limits::equal(Self, Self) -> Bool
+pub fn Limits::not_equal(Self, Self) -> Bool
+pub fn Limits::to_repr(Self) -> @debug.Repr
+
+pub struct PreparedQuery {
+  // private fields
+}
+pub fn PreparedQuery::execute(Self, Dataset) -> QueryResult raise QueryError
+pub fn PreparedQuery::form(Self) -> String
+
+pub struct Quad {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn Quad::equal(Self, Self) -> Bool
+pub fn Quad::graph(Self) -> Term?
+pub fn Quad::not_equal(Self, Self) -> Bool
+pub fn Quad::object(Self) -> Term
+pub fn Quad::predicate(Self) -> Term
+pub fn Quad::subject(Self) -> Term
+pub fn Quad::to_repr(Self) -> @debug.Repr
+
+pub struct QueryResult {
+  // private fields
+}
+pub fn QueryResult::answer(Self) -> Bool?
+pub fn QueryResult::graph(Self) -> Array[Quad]
+pub fn QueryResult::rows(Self) -> Array[Binding]
+pub fn QueryResult::statistics(Self) -> ExecutionStats
+pub fn QueryResult::to_json(Self) -> String
+pub fn QueryResult::to_ntriples(Self) -> String
+pub fn QueryResult::to_tsv(Self) -> String
+pub fn QueryResult::variables(Self) -> Array[String]
+
+pub struct Term {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn Term::datatype(Self) -> String?
+pub fn Term::equal(Self, Self) -> Bool
+pub fn Term::kind(Self) -> TermKind
+pub fn Term::language(Self) -> String?
+pub fn Term::lexical(Self) -> String
+pub fn Term::not_equal(Self, Self) -> Bool
+pub fn Term::ntriples(Self) -> String
+pub fn Term::to_repr(Self) -> @debug.Repr
+
+pub(all) enum TermKind {
+  IriKind
+  BlankKind
+  LiteralKind
+} derive(Eq, @debug.Debug)
+pub fn TermKind::equal(Self, Self) -> Bool
+pub fn TermKind::not_equal(Self, Self) -> Bool
+pub fn TermKind::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

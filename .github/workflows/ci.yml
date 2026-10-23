@@ -1,0 +1,42 @@
+name: check-build-test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install official MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Resolve dependencies
+        run: |
+          moon version --all
+          moon update
+      - name: Check build test
+        run: |
+          moon check --target all --deny-warn
+          moon build --target all --deny-warn
+          moon test --target all --deny-warn
+      - name: Format and API stability
+        run: |
+          moon fmt --check
+          moon info
+          git diff --exit-code
+      - name: Verify real scenarios
+        run: |
+          moon run examples/asset_inventory --target native --deny-warn
+          moon run examples/catalog_discovery --target native --deny-warn
+          moon run examples/research_summary --target native --deny-warn
+          moon run examples/scale --target native --release --deny-warn
+          moon run cmd/main --target native -- examples/data/catalog.ttl examples/data/catalog.rq json
+      - name: Source and publication hygiene
+        run: python3 scripts/verify_repository.py

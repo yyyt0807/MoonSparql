@@ -20,13 +20,17 @@ async fn main {
   let query_text = @fs.read_file(args[2][:]).text()
   let query = @q.prepare(query_text, limits~)
   if (query.form() == "CONSTRUCT") != (args[3] == "rdf") {
-    raise Failure("CONSTRUCT requires rdf output; SELECT/ASK require json or tsv")
+    raise Failure(
+      "CONSTRUCT requires rdf output; SELECT/ASK require json or tsv",
+    )
   }
   let data = @q.Dataset::from_turtle(data_text, limits~)
   let result = query.execute(data)
-  println(match args[3] {
-    "rdf" => result.to_ntriples()
-    "tsv" => result.to_tsv()
-    _ => result.to_json()
-  })
+  println(
+    match args[3] {
+      "rdf" => result.to_ntriples()
+      "tsv" => result.to_tsv()
+      _ => result.to_json()
+    },
+  )
 }
