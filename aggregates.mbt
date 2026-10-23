@@ -45,12 +45,7 @@ fn aggregate_value(name : String, expression : Expr?, distinct : Bool,
       None => None
       Some(e) => if name == "COUNT" || name == "SAMPLE" {
         e.maybe(subcontext)
-      } else {
-        try Some(e.eval(subcontext)) catch {
-          Evaluation(message) if message.has_prefix("unbound variable ") => None
-          e => raise e
-        }
-      }
+      } else { Some(e.eval(subcontext)) }
     }
     if expression is Some(_) && value is None { continue }
     let key = match value {

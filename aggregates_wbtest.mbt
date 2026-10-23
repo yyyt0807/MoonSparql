@@ -32,3 +32,14 @@ test "aggregate DISTINCT counts terms while COUNT skips unbound" {
     .execute(sample_data())
   assert_eq(grouped.rows().length(), 2)
 }
+
+///|
+test "aggregate errors leave their column unbound without deleting COUNT" {
+  let r = prepare("SELECT (COUNT(?x) AS ?n) (SUM(?x) AS ?s) (AVG(?x) AS ?a) " +
+    "(MIN(?x) AS ?m) {VALUES ?x {1 UNDEF 2}}").execute(sample_data())
+  assert_eq(r.rows().length(), 1)
+  assert_eq(r.rows()[0].get("n"), Some(integer(2)))
+  assert_eq(r.rows()[0].get("s"), None)
+  assert_eq(r.rows()[0].get("a"), None)
+  assert_eq(r.rows()[0].get("m"), None)
+}
