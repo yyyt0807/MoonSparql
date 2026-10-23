@@ -312,6 +312,7 @@ pub fn prepare(
     limit,
     template,
   }
+  validate_depth(query, limits.max_depth)
   validate_query(query)
   { query, limits, }
 }
