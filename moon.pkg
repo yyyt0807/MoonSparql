@@ -4,4 +4,6 @@ import {
   "thy1016/moonttl/gen_trig" @trig,
   "thy1016/moonttl/gen_nquads" @nq,
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/bigint",
+  "moonbitlang/core/string" @str,
 }
