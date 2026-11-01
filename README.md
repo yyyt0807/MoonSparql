@@ -87,3 +87,8 @@ topic-search evidence and contest materials are stored outside public Git.
 Apache-2.0. Dependency sources, AI assistance and original fixture provenance
 are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 Architecture and costs: [docs/architecture.md](docs/architecture.md).
+
+
+## 十一月新增功能
+
+**精确前置条件的原子数据补丁**（`Dataset::apply_patch`）；**SELECT结果多重集变化分析**（`QueryResult::binding_delta`）。详见[功能、用途和边界](docs/NOVEMBER_FEATURES.md)，运行 `moon run examples/november --target native --deny-warn`。当前仍为本地未发布源码，不提供虚构安装地址。

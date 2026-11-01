@@ -46,9 +46,16 @@ pub fn Binding::get(Self, String) -> Term?
 pub fn Binding::length(Self) -> Int32
 pub fn Binding::variables(Self) -> Array[String]
 
+pub(all) struct BindingDelta {
+  added : Array[Binding]
+  removed : Array[Binding]
+  retained : Int32
+}
+
 pub struct Dataset {
   // private fields
 }
+pub fn Dataset::apply_patch(Self, Array[Quad], Array[Quad], limits? : Limits) -> Self raise QueryError
 pub fn Dataset::from_quads(Array[Quad], limits? : Limits) -> Self raise QueryError
 pub fn Dataset::from_turtle(String, limits? : Limits) -> Self raise QueryError
 pub fn Dataset::graph_names(Self) -> Array[Term]
@@ -102,6 +109,7 @@ pub struct QueryResult {
   // private fields
 }
 pub fn QueryResult::answer(Self) -> Bool?
+pub fn QueryResult::binding_delta(Self, Self, limits? : Limits) -> BindingDelta raise QueryError
 pub fn QueryResult::graph(Self) -> Array[Quad]
 pub fn QueryResult::rows(Self) -> Array[Binding]
 pub fn QueryResult::statistics(Self) -> ExecutionStats
