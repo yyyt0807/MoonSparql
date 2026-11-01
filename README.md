@@ -4,9 +4,13 @@ MoonSparql is a bounded, in-process RDF query engine written in MoonBit.
 It extends existing RDF IO libraries with query execution: joins, optional facts,
 aggregates and paths return bindings or a derived graph.
 
-This is a local development repository. The temporary private module is
-`local/moonsparql`. The owner will choose the publication account and repository.
-No public package installation command is claimed before publication.
+Module: `yyyt0807/moonsparql@0.1.0`. Repository:
+[yyyt0807/MoonSparql](https://github.com/yyyt0807/MoonSparql).
+Repository owner and maintenance commit identity: `yyyt0807`.
+
+```sh
+moon add yyyt0807/moonsparql@0.1.0
+```
 
 ## Run
 
@@ -29,10 +33,29 @@ compiler. Run `./tools/windows/moon.ps1` instead of `moon` for these commands;
 the adapter builds with MSVC and invokes the installed official compiler.
 It changes process-local overrides only.
 
+CI uses the validated official compiler/core pair `0.10.16+b1a0e846e` on
+Ubuntu and Windows. For independent common-profile verification after building
+the Native CLI:
+
+```sh
+python -m venv .venv
+# Activate the environment; on Windows use .venv/Scripts/python.exe.
+python -m pip install -r scripts/requirements-interop.txt
+python scripts/compare_rdflib.py _build/native/debug/build/cmd/main/main.exe
+```
+
+The 15 RDFLib comparisons cover shared semantics only; they do not certify
+the full SPARQL standard. Python is a development oracle, not a runtime
+requirement. `scripts/verify_repository.py` checks real source/history and
+excludes private contest material from tracked paths and package ZIPs.
+
 ## Library use
 
-Import `"local/moonsparql" @q` in a package in this checkout. After the owner
-sets the publication namespace, replace this temporary import accordingly.
+Import the module in the consuming package's `moon.pkg`:
+
+```text
+import { "yyyt0807/moonsparql" @q, }
+```
 
 ```moonbit
 let data = @q.Dataset::from_turtle(
@@ -91,4 +114,4 @@ Architecture and costs: [docs/architecture.md](docs/architecture.md).
 
 ## 十一月新增功能
 
-**精确前置条件的原子数据补丁**（`Dataset::apply_patch`）；**SELECT结果多重集变化分析**（`QueryResult::binding_delta`）。详见[功能、用途和边界](docs/NOVEMBER_FEATURES.md)，运行 `moon run examples/november --target native --deny-warn`。当前仍为本地未发布源码，不提供虚构安装地址。
+**精确前置条件的原子数据补丁**（`Dataset::apply_patch`）；**SELECT结果多重集变化分析**（`QueryResult::binding_delta`）。详见[功能、用途和边界](docs/NOVEMBER_FEATURES.md)，运行 `moon run examples/november --target native --deny-warn`。这些功能纳入 0.1.0 首次公开发布。

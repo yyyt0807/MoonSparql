@@ -15,3 +15,11 @@ __pycache__/
 /.env.*
 *.zip
 *.exe
+/.local/
+*申报*
+*AI辅助*
+*ai辅助*
+*proposal*
+*PROPOSAL*
+*AI_REPORT*
+*ai_report*

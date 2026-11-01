@@ -13,3 +13,9 @@
   does not use a network service or async runtime.
 - The Windows path adapter, if needed, is generic local tooling originally
   developed in the owner's MoonUriTemplate repository, not query engine code.
+- RDFLib 7.6.0 (BSD-3-Clause) and pyparsing 3.3.3 (MIT) are separately installed
+  development-only dependencies for 15 CLI comparisons on the common supported
+  domain. Their implementation is not copied, translated, bundled or required
+  by the MoonBit runtime. Aggregate-error and other deliberate profile
+  differences are verified by MoonBit semantic tests instead of treating the
+  oracle as universal SPARQL conformance authority.

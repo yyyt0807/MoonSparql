@@ -1,8 +1,8 @@
-name = "local/moonsparql"
+name = "yyyt0807/moonsparql"
 
 version = "0.1.0"
 
-private = true
+repository = "https://github.com/yyyt0807/MoonSparql"
 
 license = "Apache-2.0"
 

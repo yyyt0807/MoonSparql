@@ -1,5 +1,5 @@
 import {
-  "local/moonsparql" @q,
+  "yyyt0807/moonsparql" @q,
   "moonbitlang/core/env",
   "moonbitlang/async",
   "moonbitlang/async/fs",
