@@ -115,3 +115,10 @@ Architecture and costs: [docs/architecture.md](docs/architecture.md).
 ## 十一月新增功能
 
 **精确前置条件的原子数据补丁**（`Dataset::apply_patch`）；**SELECT结果多重集变化分析**（`QueryResult::binding_delta`）。详见[功能、用途和边界](docs/NOVEMBER_FEATURES.md)，运行 `moon run examples/november --target native --deny-warn`。这些功能纳入 0.1.0 首次公开发布。
+
+
+## 本地开发增量（未发布）
+
+新增 **独立空白节点作用域的 RDF 合并**、**按列对齐的 SELECT 袋并集**，用途、限制和复杂度见 [功能文档](docs/EXPANSION_20261106.md)。
+从本仓库源码运行 `moon run examples/expansion --target native --deny-warn`。
+本节 API 尚未包含在已发布的 0.1.0 中。

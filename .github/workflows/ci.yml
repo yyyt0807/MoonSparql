@@ -73,3 +73,6 @@ jobs:
 
       - name: November integration scenario
         run: moon run examples/november --target native --deny-warn
+
+      - name: Scoped merge and aligned result union
+        run: moon run examples/expansion --target native --deny-warn

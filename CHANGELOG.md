@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — 2026-11-06
+
+- 独立空白节点作用域的 RDF 合并。
+- 按列对齐的 SELECT 袋并集。
+- 增加回归测试、独立可运行示例与 CI 示例步骤；详见 docs/EXPANSION_20261106.md。
+
 ## 0.1.0 — 2026-11-01
 
 - 精确前置条件的原子数据补丁：Dataset::apply_patch

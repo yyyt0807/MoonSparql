@@ -61,6 +61,7 @@ pub fn Dataset::from_turtle(String, limits? : Limits) -> Self raise QueryError
 pub fn Dataset::graph_names(Self) -> Array[Term]
 pub fn Dataset::length(Self) -> Int32
 pub fn Dataset::matching(Self, subject? : Term, predicate? : Term, object? : Term, graph? : Term, limits? : Limits) -> Array[Quad] raise QueryError
+pub fn Dataset::merge_scoped(Self, Self, limits? : Limits) -> Self raise QueryError
 pub fn Dataset::quads(Self) -> Array[Quad]
 
 pub(all) struct ExecutionStats {
@@ -116,6 +117,7 @@ pub fn QueryResult::statistics(Self) -> ExecutionStats
 pub fn QueryResult::to_json(Self) -> String
 pub fn QueryResult::to_ntriples(Self) -> String
 pub fn QueryResult::to_tsv(Self) -> String
+pub fn QueryResult::union_bindings(Self, Self, shared_blank_scope? : Bool, limits? : Limits) -> Self raise QueryError
 pub fn QueryResult::variables(Self) -> Array[String]
 
 pub struct Term {
