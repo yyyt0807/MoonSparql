@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased — 2026-11-06
+## Unreleased — 2026-11-09
+
+- 完善 SELECT 子查询、EXISTS／NOT EXISTS、否定属性集合及零长度路径语义。
+- 支持 GROUP_CONCAT、分组别名、尾部 VALUES、字符串与日期时间内置函数，以及 integer／double 转换。
+- 支持本地 FROM／FROM NAMED 数据集、BASE 与相对查询 IRI、查询匿名节点及 RDF 集合。
+- 增加离线多文档数据目录、查询结构检查和 CONSTRUCT WHERE 子图导出。
+- 接入固定版本的 W3C 查询测试。236 项执行中 219 项通过，17 项为明示的函数缺口。
 
 - 独立空白节点作用域的 RDF 合并。
 - 按列对齐的 SELECT 袋并集。

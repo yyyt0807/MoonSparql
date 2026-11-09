@@ -71,6 +71,12 @@ jobs:
           python -m pip install -r scripts/requirements-interop.txt
           python scripts/compare_rdflib.py _build/native/debug/build/cmd/main/main.exe
 
+      - name: Pinned W3C query compatibility
+        run: python scripts/check_w3c.py _build/native/debug/build/cmd/main/main.exe --fetch
+
+      - name: Local release catalogue integration
+        run: moon run examples/compatibility --target native --deny-warn
+
       - name: November integration scenario
         run: moon run examples/november --target native --deny-warn
 

@@ -19,3 +19,11 @@
   by the MoonBit runtime. Aggregate-error and other deliberate profile
   differences are verified by MoonBit semantic tests instead of treating the
   oracle as universal SPARQL conformance authority.
+- The W3C compatibility runner uses the separate
+  [W3C RDF test suites](https://github.com/w3c/rdf-tests) checkout at
+  `202a74eb81f47bcad13bbafdd37eba69c361c1c2`. The fixtures are covered by the
+  [W3C test suite licenses](https://www.w3.org/Consortium/Legal/2008/04-testsuite-copyright.html).
+  They are fetched into an ignored build directory. The MoonSparql repository
+  and package contain the runner and the case baseline.
+- Relative IRI resolution follows the hierarchical resolution model in
+  [RFC 3986 Section 5](https://www.rfc-editor.org/rfc/rfc3986#section-5).

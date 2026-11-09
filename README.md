@@ -88,17 +88,38 @@ Each example contains assertions for its outputs. The 10,000-fact scale example
 verifies indexed lookup work and an exact aggregate, without claiming a timing
 advantage over another engine.
 
-## Supported release profile
+## Query compatibility in the current source
 
-SELECT, ASK and CONSTRUCT; PREFIX with absolute IRIs; BGP, OPTIONAL, UNION,
-MINUS, FILTER, BIND, VALUES and GRAPH; inverse/sequence/alternative/*/+/? paths;
-DISTINCT, GROUP BY, HAVING, COUNT/SUM/AVG/MIN/MAX/SAMPLE, ORDER BY, OFFSET/LIMIT.
-See [the exact profile](docs/PROFILE.md) for limitations and expression functions.
+The local implementation supports SELECT subqueries, EXISTS and NOT EXISTS,
+negated property sets, GROUP_CONCAT, GROUP BY aliases, trailing VALUES, and
+local FROM and FROM NAMED datasets. Extended string and date-time builtins and
+selected datatype casts are documented with their limits in the
+[query profile](docs/PROFILE.md).
 
-This is an explicit subset of SPARQL 1.1, not a claim of full conformance.
-SERVICE, UPDATE, DESCRIBE, subqueries, entailment and remote loading are excluded.
-Unsupported syntax is rejected. Exhausted budgets fail the query without
-returning a partial-success table.
+The pinned W3C suite runs 236 query evaluations. The local result is 219 passes
+and 17 documented unsupported-function cases. Coverage and reproduction
+commands appear in the [query profile](docs/PROFILE.md).
+
+Three additional interfaces support integration from the current source.
+
+- `Dataset::from_documents` assembles independent RDF sources with named and
+  empty graph support. The Native CLI accepts the same catalogue with
+  `--dataset DATA.json QUERY.rq json|tsv|rdf`.
+- `PreparedQuery::profile` and CLI `--inspect QUERY.rq` expose static
+  projection, data-source IRIs and subquery, existence, path and aggregate
+  counts for validation tools and local catalogues.
+- `CONSTRUCT WHERE` exports the matched RDF subgraph for catalogue snapshots,
+  metadata exchange and downstream graph processing.
+
+```sh
+moon run examples/compatibility --target native --deny-warn
+moon run cmd/main --target native -- --inspect examples/data/catalog.rq
+python scripts/check_w3c.py _build/native/debug/build/cmd/main/main.exe --fetch
+```
+
+The example joins a release catalogue with an advisory graph, aggregates the
+eligible versions and exports a version subgraph. These compatibility additions
+are available in the local source.
 
 ## Ecosystem integration and sources
 
