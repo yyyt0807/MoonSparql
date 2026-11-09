@@ -25,7 +25,8 @@ pub fn rdf_namespace() -> String {
 
 ///|
 fn check_iri(value : String) -> Unit raise QueryError {
-  if value.length() == 0 || !value.contains(":") {
+  if !(value.split_once(":") is Some((scheme, _)) &&
+    valid_scheme(scheme.to_owned())) {
     raise InvalidTerm("an absolute IRI is required")
   }
   for c in value.to_array() {

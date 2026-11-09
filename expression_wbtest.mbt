@@ -6,6 +6,12 @@ fn expression_value(source : String) -> Term raise QueryError {
     row: Binding::empty(),
     budget: Budget::new(Limits::default()),
     group: None,
+    active: {
+      data: Dataset::from_quads([]),
+      graph: None,
+      correlation: None,
+      base_uri: None,
+    },
   })
 }
 

@@ -147,6 +147,7 @@ fn solution_variables(q : Query) -> Array[String] {
   if q.all {
     let names = Map([])
     q.group.variables(names)
+    q.trailing.variables(names)
     let result = names.keys().to_array()
     result.sort()
     result
@@ -157,9 +158,11 @@ fn solution_variables(q : Query) -> Array[String] {
 
 ///|
 fn build_solutions(
+  active : GraphContext,
   q : Query,
   input : Array[GroupedRow],
   budget : Budget,
+  nested~ : Bool = false,
 ) -> Array[Solution] raise QueryError {
   let variables = solution_variables(q)
   let solutions = []
@@ -176,14 +179,19 @@ fn build_solutions(
       }
     } else {
       for p in q.projections {
-        let ctx = EvalContext::{ row: source, budget, group: item.members, }
+        let ctx = EvalContext::{
+          row: source,
+          budget,
+          group: item.members,
+          active,
+        }
         if p.expression.maybe(ctx) is Some(t) {
           projected.values[p.variable] = t
           source.values[p.variable] = t
         }
       }
     }
-    let ctx = EvalContext::{ row: source, budget, group: item.members, }
+    let ctx = EvalContext::{ row: source, budget, group: item.members, active, }
     let keys = q.order.map(item => item.0.maybe(ctx))
     solutions.push({ source, projected, keys, })
   }
@@ -211,7 +219,9 @@ fn build_solutions(
       Some(n) => if result.length() >= n { break }
       None => ()
     }
-    if result.length() >= budget.limits.max_results {
+    if nested {
+      budget.rows(result.length() + 1)
+    } else if result.length() >= budget.limits.max_results {
       raise Resource("result rows")
     }
     result.push(solution)

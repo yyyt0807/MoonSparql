@@ -12,23 +12,24 @@ fn binary_precedence(value : Lexeme) -> Int32 {
 
 ///|
 fn aggregate_name(name : String) -> Bool {
-  ["COUNT", "SUM", "AVG", "MIN", "MAX", "SAMPLE"].contains(name)
+  ["COUNT", "SUM", "AVG", "MIN", "MAX", "SAMPLE", "GROUP_CONCAT"].contains(name)
 }
 
 ///|
 fn supported_function(name : String) -> Bool {
+  extended_string_function(name) ||
+  date_time_function(name) ||
   [
     "BOUND", "STR", "LANG", "DATATYPE", "ISIRI", "ISURI", "ISBLANK", "ISLITERAL",
     "ISNUMERIC", "SAMETERM", "STRLEN", "CONTAINS", "STRSTARTS", "STRENDS", "LCASE",
     "UCASE", "CONCAT", "COALESCE", "IF", "LANGMATCHES", "ABS", "CEIL", "FLOOR", "ROUND",
-    "STRDT", "STRLANG",
+    "STRDT", "STRLANG", "IRI", "URI",
   ].contains(name)
 }
 
 ///|
 fn Parser::function_call(self : Parser, name : String) -> Expr raise QueryError {
-  let name = name.to_upper()
-  if !aggregate_name(name) && !supported_function(name) {
+  if !aggregate_name(name) && !supported_function(name) && !numeric_cast(name) {
     raise Unsupported(self.position(), "function " + name)
   }
   self.expect("(")
@@ -39,8 +40,22 @@ fn Parser::function_call(self : Parser, name : String) -> Expr raise QueryError 
     } else {
       Some(self.expression())
     }
+    let separator = if name == "GROUP_CONCAT" && self.sym(";") {
+      self.require_word("SEPARATOR")
+      self.expect("=")
+      match self.advance() {
+        StringToken(text) => text
+        _ =>
+          raise Syntax(
+            self.position(),
+            "expected GROUP_CONCAT separator string",
+          )
+      }
+    } else {
+      " "
+    }
     self.expect(")")
-    Aggregate(name, value, distinct)
+    Aggregate(name, value, distinct, separator)
   } else {
     let arguments = []
     if !self.sym(")") {
@@ -56,7 +71,12 @@ fn Parser::function_call(self : Parser, name : String) -> Expr raise QueryError 
 
 ///|
 fn Parser::primary(self : Parser) -> Expr raise QueryError {
-  if self.sym("(") {
+  if self.word("EXISTS") {
+    Exists(self.group(), false)
+  } else if self.word("NOT") {
+    self.require_word("EXISTS")
+    Exists(self.group(), true)
+  } else if self.sym("(") {
     let expression = self.expression()
     self.expect(")")
     expression
@@ -69,9 +89,15 @@ fn Parser::primary(self : Parser) -> Expr raise QueryError {
   } else {
     match self.current() {
       Var(_) => Reference(self.variable())
-      Word(name) if self.tokens.get(self.i + 1)
+      Word(_) | IriToken(_) if self.tokens.get(self.i + 1)
         is Some({ value: Symbol("("), .. }) => {
-        ignore(self.advance())
+        let name = match self.current() {
+          Word(word) if !word.contains(":") => {
+            ignore(self.advance())
+            word.to_upper()
+          }
+          _ => self.read_term().lexical
+        }
         self.function_call(name)
       }
       _ => Constant(self.read_term())

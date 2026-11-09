@@ -3,6 +3,19 @@ priv struct EvalContext {
   row : Binding
   budget : Budget
   group : Array[Binding]?
+  active : GraphContext
+}
+
+///|
+fn EvalContext::value(self : EvalContext, name : String) -> Term? {
+  match self.row.get(name) {
+    Some(term) => Some(term)
+    None =>
+      match self.active.correlation {
+        Some(row) => row.get(name)
+        None => None
+      }
+  }
 }
 
 ///|
@@ -126,7 +139,7 @@ fn Expr::eval(self : Expr, context : EvalContext) -> Term raise QueryError {
   match self {
     Constant(t) => t
     Reference(name) =>
-      match context.row.get(name) {
+      match context.value(name) {
         Some(t) => t
         None => raise Evaluation("unbound variable " + name)
       }
@@ -198,7 +211,21 @@ fn Expr::eval(self : Expr, context : EvalContext) -> Term raise QueryError {
         }
       }
     Call(name, args) => evaluate_call(name, args, context)
-    Aggregate(name, e, distinct) => aggregate_value(name, e, distinct, context)
+    Aggregate(name, e, distinct, separator) =>
+      aggregate_value(name, e, distinct, separator, context)
+    Exists(pattern, negated) => {
+      let visible = match context.active.correlation {
+        Some(outer) => outer.merge(context.row).unwrap()
+        None => context.row
+      }
+      let results = evaluate_group(
+        { ..context.active, correlation: Some(visible), },
+        pattern,
+        [Binding::empty()],
+        b,
+      )
+      boolean(results.is_empty() == negated)
+    }
   }
 }
 
@@ -240,7 +267,7 @@ fn evaluate_call(
       raise Evaluation("BOUND arity")
     }
     return match args[0] {
-      Reference(v) => boolean(ctx.row.get(v) is Some(_))
+      Reference(v) => boolean(ctx.value(v) is Some(_))
       _ => raise Evaluation("BOUND requires variable")
     }
   }
@@ -283,6 +310,9 @@ fn evaluate_call(
     return boolean(false)
   }
   let values = args.map(arg => arg.eval(ctx))
+  if extended_string_function(name) {
+    return evaluate_string_function(name, values, ctx.budget)
+  }
   if name == "CONCAT" {
     let out = StringBuilder()
     let common = if values.length() == 0 { None } else { values[0].language }
@@ -316,7 +346,14 @@ fn evaluate_call(
         }
         typed_literal(string_value(a), b.lexical)
       }
-      "STRLANG" => language_literal(string_value(a), string_value(b))
+      "STRLANG" => {
+        let text = simple_string(a)
+        let lang = simple_string(b)
+        language_literal(text, lang) catch {
+          InvalidTerm(_) => raise Evaluation("invalid STRLANG language tag")
+          e => raise e
+        }
+      }
       "LANGMATCHES" => {
         let lang = string_value(a).to_lower()
         let range = string_value(b).to_lower()
@@ -342,6 +379,23 @@ fn evaluate_call(
     }
   }
   match name {
+    "IRI" | "URI" =>
+      if a.kind == IriKind {
+        a
+      } else {
+        let text = simple_string(a)
+        ctx.budget.tick(n=text.length())
+        if ctx.active.base_uri is Some(base) {
+          ctx.budget.tick(n=base.length())
+        }
+        let resolved = resolve_query_iri(text, ctx.active.base_uri) catch {
+          InvalidTerm(_) | Unsupported(_, _) =>
+            raise Evaluation("invalid IRI function argument")
+          e => raise e
+        }
+        ctx.budget.tick(n=resolved.length())
+        iri(resolved)
+      }
     "ISIRI" | "ISURI" => boolean(a.kind == IriKind)
     "ISBLANK" => boolean(a.kind == BlankKind)
     "ISLITERAL" => boolean(a.kind == LiteralKind)
@@ -378,7 +432,14 @@ fn evaluate_call(
     "UCASE" => string_result(string_value(a).to_upper(), a)
     "ABS" | "CEIL" | "FLOOR" | "ROUND" =>
       numeric_unary(name, numeric(a, digits)).term(digits)
-    _ => raise Evaluation("unknown function " + name)
+    _ =>
+      if numeric_cast(name) {
+        cast_numeric(name, a, ctx.budget)
+      } else if date_time_function(name) {
+        date_time_part(name, a, ctx.budget)
+      } else {
+        raise Evaluation("unknown function " + name)
+      }
   }
 }
 

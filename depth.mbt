@@ -18,7 +18,8 @@ fn validate_expression_depth(
         for e in args {
           stack.push((e, depth + 1))
         }
-      Aggregate(_, e, _) => if e is Some(e) { stack.push((e, depth + 1)) }
+      Aggregate(_, e, _, _) => if e is Some(e) { stack.push((e, depth + 1)) }
+      Exists(g, _) => validate_group_depth(g, maximum - depth)
       _ => ()
     }
   }
@@ -48,15 +49,19 @@ fn validate_group_depth(
   group : Group,
   maximum : Int32,
 ) -> Unit raise QueryError {
+  if maximum <= 0 {
+    raise Resource("graph pattern depth")
+  }
   for pattern in group.patterns {
     match pattern {
-      Triple(_, path, _) => validate_path_depth(path, maximum)
-      Filter(e) | Bind(e, _) => validate_expression_depth(e, maximum)
+      Triple(_, path, _) => validate_path_depth(path, maximum - 1)
+      Filter(e) | Bind(e, _) => validate_expression_depth(e, maximum - 1)
       Nested(g) | Optional(g) | Graph(_, g) | Minus(g) =>
-        validate_group_depth(g, maximum)
+        validate_group_depth(g, maximum - 1)
+      Subselect(q) => validate_depth(q, maximum - 1)
       Union(groups) =>
         for g in groups {
-          validate_group_depth(g, maximum)
+          validate_group_depth(g, maximum - 1)
         }
       _ => ()
     }
@@ -69,7 +74,7 @@ fn validate_depth(q : Query, maximum : Int32) -> Unit raise QueryError {
   for p in q.projections {
     validate_expression_depth(p.expression, maximum)
   }
-  for e in q.group_by {
+  for (e, _) in q.group_by {
     validate_expression_depth(e, maximum)
   }
   for e in q.having {

@@ -50,5 +50,5 @@ pub fn Dataset::apply_patch(
   for q in add {
     output.push(q)
   }
-  Dataset::from_quads(output, limits~)
+  Dataset::from_quads(output, named_graphs=self.declared_names, limits~)
 }

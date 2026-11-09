@@ -15,11 +15,11 @@ test "query paths retain alternative bags and deduplicate closure endpoints" {
 }
 
 ///|
-test "bound endpoint caches do not leak zero-length external nodes to UNDEF" {
+test "variable-variable path zero length uses graph nodes even when joined with VALUES" {
   let q = prepare(
     "SELECT ?x ?y {VALUES ?x {<urn:external> UNDEF} ?x <urn:p>* ?y}",
   )
-  assert_eq(q.execute(path_data()).rows().length(), 5)
+  assert_eq(q.execute(path_data()).rows().length(), 4)
   let reverse = prepare("SELECT ?x {?x ^<urn:p> <urn:a>}").execute(path_data())
   assert_eq(reverse.rows().length(), 1)
   assert_eq(reverse.rows()[0].get("x"), Some(iri("urn:b")))

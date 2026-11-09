@@ -6,17 +6,34 @@ priv struct Parser {
   limits : Limits
   mut depth : Int32
   mut template_mode : Bool
+  mut base_uri : String?
+  mut anonymous_nodes : Int32
+  mut iri_units : Int32
 }
 
 ///|
-fn Parser::new(source : String, limits : Limits) -> Parser raise QueryError {
+fn Parser::new(
+  source : String,
+  limits : Limits,
+  base_uri? : String,
+) -> Parser raise QueryError {
+  let tokens = lex(source, limits)
+  if base_uri is Some(base) {
+    if base.length() > limits.max_query_chars {
+      raise Resource("query base characters")
+    }
+    check_iri(base)
+  }
   {
-    tokens: lex(source, limits),
+    tokens,
     i: 0,
     prefixes: Map([]),
     limits,
     depth: 0,
     template_mode: false,
+    base_uri,
+    anonymous_nodes: 0,
+    iri_units: 0,
   }
 }
 
@@ -99,8 +116,30 @@ fn Parser::enter(self : Parser) -> Unit raise QueryError {
 }
 
 ///|
+fn Parser::charge_iri(self : Parser, value : String) -> String raise QueryError {
+  if value.length() > self.limits.max_query_chars - self.iri_units {
+    raise Resource("expanded query IRI characters")
+  }
+  self.iri_units += value.length()
+  value
+}
+
+///|
 fn Parser::prefixes(self : Parser) -> Unit raise QueryError {
-  while self.word("PREFIX") {
+  while true {
+    if self.word("BASE") {
+      match self.advance() {
+        IriToken(value) =>
+          self.base_uri = Some(
+            self.charge_iri(resolve_query_iri(value, self.base_uri)),
+          )
+        _ => raise Syntax(self.position(), "expected BASE IRI")
+      }
+      continue
+    }
+    if !self.word("PREFIX") {
+      break
+    }
     let prefix = match self.advance() {
       Word(w) =>
         match w.split_once(":") {
@@ -115,16 +154,10 @@ fn Parser::prefixes(self : Parser) -> Unit raise QueryError {
       _ => raise Syntax(self.position(), "expected prefix name")
     }
     let base = match self.advance() {
-      IriToken(v) => {
-        check_iri(v)
-        v
-      }
+      IriToken(v) => self.charge_iri(resolve_query_iri(v, self.base_uri))
       _ => raise Syntax(self.position(), "expected prefix IRI")
     }
     self.prefixes[prefix] = base
-  }
-  if self.word("BASE") {
-    raise Unsupported(self.position(), "BASE and relative IRIs")
   }
 }
 
@@ -132,7 +165,7 @@ fn Parser::prefixes(self : Parser) -> Unit raise QueryError {
 fn Parser::read_term(self : Parser) -> Term raise QueryError {
   let position = self.position()
   match self.advance() {
-    IriToken(v) => iri(v)
+    IriToken(v) => iri(self.charge_iri(resolve_query_iri(v, self.base_uri)))
     StringToken(v) =>
       if self.sym("@") {
         let lang = match self.advance() {
@@ -190,7 +223,7 @@ fn Parser::read_term(self : Parser) -> Term raise QueryError {
               None =>
                 raise Syntax(position, "unknown prefix " + prefix.to_owned())
             }
-            iri(base + suffix.to_owned())
+            iri(self.charge_iri(base + suffix.to_owned()))
           }
         None => raise Syntax(position, "expected RDF term")
       }
@@ -210,25 +243,15 @@ fn Parser::slot(self : Parser) -> Slot raise QueryError {
 ///|
 fn Parser::path_atom(self : Parser) -> Path raise QueryError {
   self.enter()
-  let mut path = if self.sym("^") {
-    Inverse(self.path_atom())
-  } else if self.sym("(") {
+  let inverse = self.sym("^")
+  let mut path = if self.sym("(") {
     let inner = self.read_path()
     self.expect(")")
     inner
-  } else if self.word("A") {
-    Predicate(iri(rdf_namespace() + "type"))
+  } else if self.sym("!") {
+    self.negated_path()
   } else {
-    match self.current() {
-      Var(_) => PathVar(self.variable())
-      _ => {
-        let term = self.read_term()
-        if term.kind != IriKind {
-          raise Syntax(self.position(), "predicate must be IRI")
-        }
-        Predicate(term)
-      }
-    }
+    Predicate(self.path_predicate())
   }
   if self.sym("*") {
     path = ZeroMore(path)
@@ -238,7 +261,50 @@ fn Parser::path_atom(self : Parser) -> Path raise QueryError {
     path = ZeroOne(path)
   }
   self.depth -= 1
-  path
+  if inverse {
+    Inverse(path)
+  } else {
+    path
+  }
+}
+
+///|
+fn Parser::path_predicate(self : Parser) -> Term raise QueryError {
+  let term = if self.word("A") {
+    iri(rdf_namespace() + "type")
+  } else {
+    self.read_term()
+  }
+  if term.kind != IriKind {
+    raise Syntax(self.position(), "predicate must be IRI")
+  }
+  term
+}
+
+///|
+fn Parser::negated_path(self : Parser) -> Path raise QueryError {
+  let forward = []
+  let reverse = []
+  let grouped = self.sym("(")
+  if grouped && self.sym(")") {
+    return Negated(forward, reverse)
+  }
+  while true {
+    let inverse = self.sym("^")
+    let term = self.path_predicate()
+    if inverse {
+      reverse.push(term)
+    } else {
+      forward.push(term)
+    }
+    if !grouped || !self.sym("|") {
+      break
+    }
+  }
+  if grouped {
+    self.expect(")")
+  }
+  Negated(forward, reverse)
 }
 
 ///|
@@ -252,6 +318,9 @@ fn Parser::path_sequence(self : Parser) -> Path raise QueryError {
 
 ///|
 fn Parser::read_path(self : Parser) -> Path raise QueryError {
+  if self.current() is Var(_) {
+    return PathVar(self.variable())
+  }
   let mut path = self.path_sequence()
   while self.sym("|") {
     path = Alternative(path, self.path_sequence())

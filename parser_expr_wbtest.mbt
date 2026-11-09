@@ -14,8 +14,10 @@ test "expression arithmetic and boolean operators have SPARQL precedence" {
 ///|
 test "aggregate syntax preserves count-star and distinct intent" {
   let p = Parser::new("COUNT(DISTINCT *) SUM(?n)", Limits::default())
-  assert_true(p.expression() is Aggregate("COUNT", None, true))
-  assert_true(p.expression() is Aggregate("SUM", Some(Reference("n")), false))
+  assert_true(p.expression() is Aggregate("COUNT", None, true, _))
+  assert_true(
+    p.expression() is Aggregate("SUM", Some(Reference("n")), false, _),
+  )
   assert_true(
     rejects(() => Parser::new("UNKNOWN(?n)", Limits::default()).expression()),
   )

@@ -15,7 +15,7 @@ fn Expr::references(
       for arg in args {
         arg.references(names, inside_aggregate~)
       }
-    Aggregate(_, value, _) => {
+    Aggregate(_, value, _, _) => {
       if inside_aggregate {
         raise Syntax(0, "nested aggregate")
       }
@@ -23,6 +23,7 @@ fn Expr::references(
         e.references(names, inside_aggregate=true)
       }
     }
+    Exists(g, _) => validate_group(g)
     _ => ()
   }
 }
@@ -39,11 +40,15 @@ fn validate_group(g : Group) -> Unit raise QueryError {
         if e.has_aggregate() {
           raise Syntax(0, "aggregate in BIND")
         }
+        e.references(Map([]))
       }
-      Filter(e) =>
+      Filter(e) => {
         if e.has_aggregate() {
           raise Syntax(0, "aggregate in FILTER")
         }
+        e.references(Map([]))
+      }
+      Subselect(q) => validate_query(q)
       Nested(inner) | Optional(inner) | Minus(inner) | Graph(_, inner) =>
         validate_group(inner)
       Union(groups) =>
@@ -66,33 +71,62 @@ fn validate_query(q : Query) -> Unit raise QueryError {
     raise Syntax(0, "HAVING requires grouping")
   }
   let allowed : Map[String, Bool] = Map([])
-  for expression in q.group_by {
+  for (expression, group_name) in q.group_by {
     if expression.has_aggregate() {
       raise Syntax(0, "aggregate in GROUP BY")
     }
-    if expression is Reference(name) {
+    expression.references(Map([]))
+    if group_name is Some(name) {
+      if scope.contains(name) || allowed.contains(name) {
+        raise Syntax(0, "GROUP BY alias already in scope")
+      }
+      allowed[name] = true
+      scope[name] = true
+    } else if expression is Reference(name) {
       allowed[name] = true
     }
   }
   if grouped && q.all {
     raise Syntax(0, "SELECT * with grouping is outside profile")
   }
+  for expression in q.having {
+    check_group_references(expression, allowed)
+  }
+  q.trailing.variables(scope)
+  q.trailing.variables(allowed)
   for projection in q.projections {
     let plain = projection.expression is Reference(name) &&
       name == projection.variable
     if !plain && scope.get(projection.variable) is Some(_) {
       raise Syntax(0, "projection aliased already in scope")
     }
-    let references = Map([])
-    projection.expression.references(references)
     if grouped {
-      for name, _ in references {
-        if allowed.get(name) is None {
-          raise Syntax(0, "ungrouped projected variable " + name)
-        }
-      }
+      check_group_references(projection.expression, allowed)
+    } else {
+      projection.expression.references(Map([]))
     }
     allowed[projection.variable] = true
     scope[projection.variable] = true
+  }
+  for (expression, _) in q.order {
+    if grouped {
+      check_group_references(expression, allowed)
+    } else {
+      expression.references(Map([]))
+    }
+  }
+}
+
+///|
+fn check_group_references(
+  e : Expr,
+  allowed : Map[String, Bool],
+) -> Unit raise QueryError {
+  let references = Map([])
+  e.references(references)
+  for name, _ in references {
+    if !allowed.contains(name) {
+      raise Syntax(0, "ungrouped variable " + name)
+    }
   }
 }

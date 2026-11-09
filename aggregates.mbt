@@ -7,7 +7,7 @@ priv struct GroupedRow {
 ///|
 fn Expr::has_aggregate(self : Expr) -> Bool {
   match self {
-    Aggregate(_, _, _) => true
+    Aggregate(_, _, _, _) => true
     Unary(_, e) => e.has_aggregate()
     Binary(_, a, b) => a.has_aggregate() || b.has_aggregate()
     Call(_, args) => args.any(e => e.has_aggregate())
@@ -27,6 +27,9 @@ fn query_grouped(q : Query) -> Bool {
 fn full_binding_key(row : Binding) -> String {
   let out = StringBuilder()
   for name in row.variables() {
+    if name.has_prefix("\u0000") {
+      continue
+    }
     out.write_string(key_part(name))
     out.write_string(key_part(row.values.get(name).unwrap().key()))
   }
@@ -38,6 +41,7 @@ fn aggregate_value(
   name : String,
   expression : Expr?,
   distinct : Bool,
+  separator : String,
   ctx : EvalContext,
 ) -> Term raise QueryError {
   let rows = match ctx.group {
@@ -49,7 +53,7 @@ fn aggregate_value(
   let mut count = 0
   for row in rows {
     ctx.budget.tick()
-    let subcontext = EvalContext::{ row, budget: ctx.budget, group: None, }
+    let subcontext = EvalContext::{ ..ctx, row, group: None, }
     let value = match expression {
       None => None
       Some(e) =>
@@ -62,14 +66,16 @@ fn aggregate_value(
     if expression is Some(_) && value is None {
       continue
     }
-    let key = match value {
-      Some(v) => v.key()
-      None => full_binding_key(row)
+    if distinct {
+      let key = match value {
+        Some(v) => v.key()
+        None => full_binding_key(row)
+      }
+      if seen.contains(key) {
+        continue
+      }
+      seen[key] = true
     }
-    if distinct && seen.get(key) is Some(_) {
-      continue
-    }
-    seen[key] = true
     count += 1
     if value is Some(v) {
       values.push(v)
@@ -77,6 +83,21 @@ fn aggregate_value(
   }
   if name == "COUNT" {
     return integer(count)
+  }
+  if name == "GROUP_CONCAT" {
+    let output = StringBuilder()
+    for i, value in values {
+      if i > 0 {
+        ctx.budget.tick(n=separator.length())
+        output.write_string(separator)
+      }
+      if value.kind == BlankKind {
+        raise Evaluation("GROUP_CONCAT blank node")
+      }
+      ctx.budget.tick(n=value.lexical.length())
+      output.write_string(value.lexical)
+    }
+    return literal(output.to_string())
   }
   if name == "SUM" || name == "AVG" {
     let mut total = integer(0)
@@ -120,6 +141,7 @@ fn aggregate_value(
 
 ///|
 fn group_rows(
+  active : GraphContext,
   q : Query,
   rows : Array[Binding],
   budget : Budget,
@@ -134,36 +156,43 @@ fn group_rows(
     keys.push(Binding::empty())
     members.push(rows)
   } else {
+    let has_alias = q.group_by.any(item => item.1 is Some(_))
     for row in rows {
       budget.tick()
       let key = StringBuilder()
       let binding = Binding::empty()
-      for e in q.group_by {
-        let value = e.maybe({ row, budget, group: None, })
+      let visible = if has_alias { row.copy() } else { row }
+      for (e, group_name) in q.group_by {
+        let value = e.maybe({ row: visible, budget, group: None, active, })
         key.write_string(
           match value {
             Some(t) => "B" + key_part(t.key())
             None => "U"
           },
         )
-        if e is Reference(name) && value is Some(t) {
-          binding.values[name] = t
+        if value is Some(t) {
+          if group_name is Some(name) {
+            binding.values[name] = t
+            visible.values[name] = t
+          } else if e is Reference(name) {
+            binding.values[name] = t
+          }
         }
       }
       let key = key.to_string()
       match indexes.get(key) {
-        Some(i) => members[i].push(row)
+        Some(i) => members[i].push(visible)
         None => {
           indexes[key] = keys.length()
           keys.push(binding)
-          members.push([row])
+          members.push([visible])
         }
       }
     }
   }
   let output = []
   for i, row in keys {
-    let ctx = EvalContext::{ row, budget, group: Some(members[i]), }
+    let ctx = EvalContext::{ row, budget, group: Some(members[i]), active, }
     let mut accepted = true
     for expression in q.having {
       if expression.truth(ctx) != Some(true) {

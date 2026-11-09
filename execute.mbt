@@ -40,9 +40,44 @@ pub fn QueryResult::statistics(self : QueryResult) -> ExecutionStats {
 }
 
 ///|
+priv struct GraphContext {
+  data : Dataset
+  graph : Term?
+  correlation : Binding?
+  base_uri : String?
+}
+
+///|
+fn GraphContext::slot(self : GraphContext, slot : Slot) -> Slot {
+  if slot is Variable(name) &&
+    self.correlation is Some(row) &&
+    row.get(name) is Some(term) {
+    Fixed(term)
+  } else {
+    slot
+  }
+}
+
+///|
+fn GraphContext::constrain(self : GraphContext, row : Binding) -> Binding? {
+  guard self.correlation is Some(outer) else { return Some(row) }
+  let result = Binding::empty()
+  for name, term in row.values {
+    if outer.get(name) is Some(expected) {
+      if expected != term {
+        return None
+      }
+    } else {
+      result.values[name] = term
+    }
+  }
+  Some(result)
+}
+
+///|
 fn add_variable(names : Map[String, Bool], slot : Slot) -> Unit {
   match slot {
-    Variable(name) => names[name] = true
+    Variable(name) if !name.has_prefix("\u0000") => names[name] = true
     _ => ()
   }
 }
@@ -72,6 +107,10 @@ fn Group::variables(self : Group, names : Map[String, Bool]) -> Unit {
           names[v] = true
         }
       Bind(_, name) => names[name] = true
+      Subselect(q) =>
+        for name in solution_variables(q) {
+          names[name] = true
+        }
       Filter(_) | Minus(_) => ()
     }
   }
@@ -120,32 +159,52 @@ fn join_triple(
 
 ///|
 fn evaluate_group(
-  data : Dataset,
+  active : GraphContext,
   group : Group,
   input : Array[Binding],
-  graph : Term?,
   budget : Budget,
 ) -> Array[Binding] raise QueryError {
   let mut rows = input
   for pattern in group.patterns {
+    budget.tick()
     rows = match pattern {
-      Triple(s, p, o) => join_triple(data, rows, s, p, o, graph, budget)
+      Triple(s, p, o) => {
+        let p = if p is PathVar(name) &&
+          active.slot(Variable(name)) is Fixed(term) {
+          Path::Predicate(term)
+        } else {
+          p
+        }
+        join_triple(
+          active.data,
+          rows,
+          active.slot(s),
+          p,
+          active.slot(o),
+          active.graph,
+          budget,
+        )
+      }
       Nested(g) =>
         compatible_join(
           rows,
-          evaluate_group(data, g, [Binding::empty()], graph, budget),
+          evaluate_group(active, g, [Binding::empty()], budget),
           budget,
         )
-      Optional(g) => optional_join(data, rows, g, graph, budget)
+      Optional(g) => optional_join(active, rows, g, budget)
       Filter(_) => rows
       Bind(expression, name) => {
+        if active.slot(Variable(name)) is Fixed(_) {
+          raise Unsupported(0, "BIND of a correlated EXISTS variable")
+        }
         let output = []
         for row in rows {
           let next = row.copy()
           if next.get(name) is Some(_) {
             raise Evaluation("BIND variable already in scope")
           }
-          if expression.maybe({ row, budget, group: None, }) is Some(value) {
+          if expression.maybe({ row, budget, group: None, active, })
+            is Some(value) {
             next.values[name] = value
           }
           output.push(next)
@@ -157,10 +216,9 @@ fn evaluate_group(
         let right = []
         for g in groups {
           let alternatives = evaluate_group(
-            data,
+            active,
             g,
             [Binding::empty()],
-            graph,
             budget,
           )
           budget.rows(right.length() + alternatives.length())
@@ -177,20 +235,65 @@ fn evaluate_group(
               binding.values[name] = t
             }
           }
-          right.push(binding)
+          if active.constrain(binding) is Some(row) {
+            right.push(row)
+          }
         }
         compatible_join(rows, right, budget)
       }
-      Graph(slot, g) => named_graph_join(data, rows, slot, g, budget)
+      Graph(slot, g) =>
+        named_graph_join(active, rows, active.slot(slot), g, budget)
       Minus(g) =>
         minus_join(
           rows,
-          evaluate_group(data, g, [Binding::empty()], graph, budget),
+          evaluate_group(active, g, [Binding::empty()], budget),
           budget,
         )
+      Subselect(q) => {
+        let inner = execute_solutions(
+          { ..active, correlation: None, },
+          q,
+          budget,
+          nested=true,
+        )
+        let right = []
+        for solution in inner {
+          if active.constrain(solution.projected) is Some(binding) {
+            right.push(binding)
+          }
+        }
+        compatible_join(rows, right, budget)
+      }
     }
   }
-  apply_filters(rows, group, budget)
+  apply_filters(active, rows, group, budget)
+}
+
+///|
+fn execute_solutions(
+  active : GraphContext,
+  q : Query,
+  budget : Budget,
+  nested~ : Bool = false,
+) -> Array[Solution] raise QueryError {
+  let active = { ..active, base_uri: q.base_uri, }
+  let rows = evaluate_group(active, q.group, [Binding::empty()], budget)
+  let grouped = group_rows(active, q, rows, budget)
+  if q.trailing.patterns.is_empty() {
+    return build_solutions(active, q, grouped, budget, nested~)
+  }
+  let trailing = evaluate_group(active, q.trailing, [Binding::empty()], budget)
+  let joined = []
+  for item in grouped {
+    for value in trailing {
+      budget.tick()
+      if item.row.merge(value) is Some(row) {
+        joined.push({ row, members: item.members, })
+        budget.rows(joined.length())
+      }
+    }
+  }
+  build_solutions(active, q, joined, budget, nested~)
 }
 
 ///|
@@ -200,11 +303,18 @@ pub fn PreparedQuery::execute(
 ) -> QueryResult raise QueryError {
   let budget = Budget::new(self.limits)
   let q = self.query
-  if data.length() > self.limits.max_triples {
-    raise Resource("dataset quads")
+  if data.length() > self.limits.max_triples ||
+    data.names.length() > self.limits.max_triples {
+    raise Resource("dataset size")
   }
-  let rows = evaluate_group(data, q.group, [Binding::empty()], None, budget)
-  let solutions = build_solutions(q, group_rows(q, rows, budget), budget)
+  let data = select_dataset(data, q.datasets, budget)
+  let active = GraphContext::{
+    data,
+    graph: None,
+    correlation: None,
+    base_uri: q.base_uri,
+  }
+  let solutions = execute_solutions(active, q, budget)
   let constructed = if q.form == Construct {
     construct_graph(data, solutions, q.template, budget)
   } else {

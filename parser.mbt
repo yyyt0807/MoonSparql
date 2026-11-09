@@ -15,7 +15,8 @@ pub fn PreparedQuery::form(self : PreparedQuery) -> String {
 
 ///|
 fn Parser::triples(self : Parser) -> Array[Pattern] raise QueryError {
-  let s = self.slot()
+  let result = []
+  let s = self.graph_node(result)
   match s {
     Fixed(t) =>
       if self.template_mode && t.kind == LiteralKind {
@@ -23,12 +24,37 @@ fn Parser::triples(self : Parser) -> Array[Pattern] raise QueryError {
       }
     _ => ()
   }
-  let result = []
+  if result.is_empty() || !self.end_of_triples() {
+    self.predicate_list(s, result)
+  }
+  result
+}
+
+///|
+fn Parser::end_of_triples(self : Parser) -> Bool {
+  match self.current() {
+    Symbol("}" | "." | "]" | "{") | EndToken => true
+    Word(word) =>
+      ["OPTIONAL", "FILTER", "BIND", "VALUES", "GRAPH", "MINUS"].contains(
+        word.to_upper(),
+      )
+    _ => false
+  }
+}
+
+///|
+fn Parser::predicate_list(
+  self : Parser,
+  s : Slot,
+  result : Array[Pattern],
+) -> Unit raise QueryError {
   while true {
     let p = self.read_path()
-    result.push(Triple(s, p, self.slot()))
+    let object = self.graph_node(result)
+    result.push(Triple(s, p, object))
     while self.sym(",") {
-      result.push(Triple(s, p, self.slot()))
+      let object = self.graph_node(result)
+      result.push(Triple(s, p, object))
     }
     if !self.sym(";") {
       break
@@ -36,11 +62,58 @@ fn Parser::triples(self : Parser) -> Array[Pattern] raise QueryError {
     while self.sym(";") {
       ()
     }
-    if self.current() == Symbol("}") || self.current() == Symbol(".") {
+    if self.end_of_triples() {
       break
     }
   }
-  result
+}
+
+///|
+fn Parser::anonymous_node(self : Parser) -> Slot raise QueryError {
+  let id = self.anonymous_nodes.to_string()
+  self.anonymous_nodes += 1
+  if self.template_mode {
+    Fixed(blank("!anonymous" + id))
+  } else {
+    // This prefix cannot be written as a SPARQL variable by the lexer.
+    Variable("\u0000" + id)
+  }
+}
+
+///|
+fn Parser::graph_node(
+  self : Parser,
+  output : Array[Pattern],
+) -> Slot raise QueryError {
+  if self.sym("[") {
+    self.enter()
+    let node = self.anonymous_node()
+    if !self.sym("]") {
+      self.predicate_list(node, output)
+      self.expect("]")
+    }
+    self.depth -= 1
+    return node
+  }
+  if !self.sym("(") {
+    return self.slot()
+  }
+  self.enter()
+  let members = []
+  while !self.sym(")") {
+    members.push(self.graph_node(output))
+  }
+  let mut rest = Slot::Fixed(iri(rdf_namespace() + "nil"))
+  let first = Path::Predicate(iri(rdf_namespace() + "first"))
+  let next = Path::Predicate(iri(rdf_namespace() + "rest"))
+  for i = members.length() - 1; i >= 0; i = i - 1 {
+    let node = self.anonymous_node()
+    output.push(Triple(node, first, members[i]))
+    output.push(Triple(node, next, rest))
+    rest = node
+  }
+  self.depth -= 1
+  rest
 }
 
 ///|
@@ -92,6 +165,15 @@ fn Parser::values(self : Parser) -> Pattern raise QueryError {
 fn Parser::group(self : Parser) -> Group raise QueryError {
   self.enter()
   self.expect("{")
+  if self.word("SELECT") {
+    if self.template_mode {
+      raise Syntax(self.position(), "subquery in template")
+    }
+    let query = self.query(Select, nested=true)
+    self.expect("}")
+    self.depth -= 1
+    return { patterns: [Subselect(query)], }
+  }
   let patterns = []
   while !self.sym("}") {
     let pat = if self.word("OPTIONAL") {
@@ -111,6 +193,9 @@ fn Parser::group(self : Parser) -> Group raise QueryError {
       self.values()
     } else if self.word("GRAPH") {
       let graph = self.slot()
+      if graph is Fixed(term) && term.kind != IriKind {
+        raise Syntax(self.position(), "GRAPH requires an IRI or variable")
+      }
       Graph(graph, self.group())
     } else if self.current() == Symbol("{") {
       let inner = self.group()
@@ -137,15 +222,7 @@ fn Parser::group(self : Parser) -> Group raise QueryError {
       if self.sym(".") {
         continue
       }
-      let permitted = match self.current() {
-        Symbol("}" | "{") => true
-        Word(w) =>
-          ["OPTIONAL", "FILTER", "BIND", "VALUES", "GRAPH", "MINUS"].contains(
-            w.to_upper(),
-          )
-        _ => false
-      }
-      if !permitted {
+      if !self.end_of_triples() {
         raise Syntax(self.position(), "expected triple separator")
       }
       continue
@@ -180,7 +257,7 @@ fn Parser::nonnegative(self : Parser) -> Int32 raise QueryError {
 ///|
 fn Parser::modifier(self : Parser) -> Bool {
   match self.current() {
-    EndToken => true
+    EndToken | Symbol("}") => true
     Word(w) =>
       ["GROUP", "HAVING", "ORDER", "LIMIT", "OFFSET", "VALUES"].contains(
         w.to_upper(),
@@ -193,8 +270,9 @@ fn Parser::modifier(self : Parser) -> Bool {
 pub fn prepare(
   source : String,
   limits~ : Limits = Limits::default(),
+  base_uri? : String,
 ) -> PreparedQuery raise QueryError {
-  let p = Parser::new(source, limits)
+  let p = Parser::new(source, limits, base_uri?)
   p.prefixes()
   let form = if p.word("SELECT") {
     Select
@@ -205,6 +283,21 @@ pub fn prepare(
   } else {
     raise Unsupported(p.position(), "expected SELECT, ASK or CONSTRUCT")
   }
+  let query = p.query(form)
+  if p.current() != EndToken {
+    raise Syntax(p.position(), "trailing query input")
+  }
+  validate_depth(query, limits.max_depth)
+  validate_query(query)
+  { query, limits, }
+}
+
+///|
+fn Parser::query(
+  p : Parser,
+  form : QueryForm,
+  nested~ : Bool = false,
+) -> Query raise QueryError {
   let distinct = form == Select && p.word("DISTINCT")
   let all = form == Select && p.sym("*")
   let projections = []
@@ -232,7 +325,8 @@ pub fn prepare(
     }
   }
   let template = []
-  if form == Construct {
+  let shorthand = form == Construct && p.current() != Symbol("{")
+  if form == Construct && !shorthand {
     p.set_template_mode(true)
     let t = p.group()
     p.set_template_mode(false)
@@ -247,8 +341,37 @@ pub fn prepare(
       }
     }
   }
-  ignore(p.word("WHERE"))
+  let datasets = []
+  while p.word("FROM") {
+    if nested {
+      raise Syntax(p.position(), "dataset clause in subquery")
+    }
+    let named = p.word("NAMED")
+    let source = p.read_term()
+    if source.kind != IriKind {
+      raise Syntax(p.position(), "dataset source must be an IRI")
+    }
+    datasets.push((source, named))
+  }
+  if shorthand {
+    p.require_word("WHERE")
+  } else {
+    ignore(p.word("WHERE"))
+  }
   let group = p.group()
+  if shorthand {
+    for pattern in group.patterns {
+      match pattern {
+        Triple(s, Predicate(_) | PathVar(_) as path, o) =>
+          template.push((s, path, o))
+        _ =>
+          raise Syntax(
+            p.position(),
+            "CONSTRUCT WHERE requires ordinary triples",
+          )
+      }
+    }
+  }
   let group_by = []
   let having = []
   let order = []
@@ -258,7 +381,14 @@ pub fn prepare(
   if p.word("GROUP") {
     p.require_word("BY")
     while !p.modifier() {
-      group_by.push(p.expression())
+      if p.sym("(") {
+        let e = p.expression()
+        let group_name = if p.word("AS") { Some(p.variable()) } else { None }
+        p.expect(")")
+        group_by.push((e, group_name))
+      } else {
+        group_by.push((p.expression(), None))
+      }
     }
     if group_by.length() == 0 {
       raise Syntax(p.position(), "empty GROUP BY")
@@ -289,30 +419,39 @@ pub fn prepare(
       raise Syntax(p.position(), "empty ORDER BY")
     }
   }
-  while p.current() != EndToken {
+  while p.current() != EndToken && p.current() != Symbol("}") {
     if p.word("LIMIT") && limit is None {
       limit = Some(p.nonnegative())
     } else if p.word("OFFSET") && !saw_offset {
       offset = p.nonnegative()
       saw_offset = true
+    } else if p.current() is Word(w) && w.to_upper() == "VALUES" {
+      break
     } else {
       raise Unsupported(p.position(), "query modifier or trailing input")
     }
   }
-  let query = Query::{
+  let trailing = Group::{
+    patterns: if p.word("VALUES") {
+      [p.values()]
+    } else {
+      []
+    },
+  }
+  Query::{
     form,
     projections,
     all,
     distinct,
+    base_uri: p.base_uri,
     group,
     group_by,
+    datasets,
+    trailing,
     having,
     order,
     offset,
     limit,
     template,
   }
-  validate_depth(query, limits.max_depth)
-  validate_query(query)
-  { query, limits, }
 }

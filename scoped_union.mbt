@@ -68,7 +68,11 @@ pub fn Dataset::merge_scoped(
       object: scope.rename(q.object),
     })
   }
-  Dataset::from_quads(facts, limits~)
+  Dataset::from_quads(
+    facts,
+    named_graphs=self.declared_names + other.declared_names,
+    limits~,
+  )
 }
 
 ///|

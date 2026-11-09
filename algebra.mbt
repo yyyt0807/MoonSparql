@@ -11,6 +11,7 @@ priv enum Path {
   Inverse(Path)
   Sequence(Path, Path)
   Alternative(Path, Path)
+  Negated(Array[Term], Array[Term])
   ZeroMore(Path)
   OneMore(Path)
   ZeroOne(Path)
@@ -23,7 +24,8 @@ priv enum Expr {
   Unary(String, Expr)
   Binary(String, Expr, Expr)
   Call(String, Array[Expr])
-  Aggregate(String, Expr?, Bool)
+  Aggregate(String, Expr?, Bool, String)
+  Exists(Group, Bool)
 }
 
 ///|
@@ -37,6 +39,7 @@ priv enum Pattern {
   Values(Array[String], Array[Array[Term?]])
   Graph(Slot, Group)
   Minus(Group)
+  Subselect(Query)
 }
 
 ///|
@@ -63,8 +66,11 @@ priv struct Query {
   projections : Array[Projection]
   all : Bool
   distinct : Bool
+  base_uri : String?
   group : Group
-  group_by : Array[Expr]
+  group_by : Array[(Expr, String?)]
+  datasets : Array[(Term, Bool)]
+  trailing : Group
   having : Array[Expr]
   order : Array[(Expr, Bool)]
   offset : Int32

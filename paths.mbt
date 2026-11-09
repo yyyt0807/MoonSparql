@@ -71,24 +71,29 @@ fn path_closure(
   let output = []
   for start in nodes {
     let seen : Map[String, Bool] = Map([])
-    let queue = if include_zero {
+    let queue = []
+    let initial = if include_zero {
       [start]
     } else {
-      adjacency.get(start.key()).unwrap_or([]).copy()
+      adjacency.get(start.key()).unwrap_or([])
+    }
+    for first in initial {
+      budget.tick()
+      if !seen.contains(first.key()) {
+        seen[first.key()] = true
+        queue.push(first)
+      }
     }
     let mut i = 0
     while i < queue.length() {
       budget.tick()
       let node = queue[i]
       i += 1
-      if seen.get(node.key()) is Some(_) {
-        continue
-      }
-      seen[node.key()] = true
       pair_push(output, start, node, budget)
       for next in adjacency.get(node.key()).unwrap_or([]) {
         budget.tick()
         if seen.get(next.key()) is None {
+          seen[next.key()] = true
           queue.push(next)
         }
       }
@@ -99,6 +104,39 @@ fn path_closure(
     }
   }
   output
+}
+
+///|
+fn negated_pairs(
+  data : Dataset,
+  graph : Term?,
+  excluded : Array[Term],
+  reverse : Bool,
+  budget : Budget,
+) -> Array[(Term, Term)] raise QueryError {
+  let predicates = Map([])
+  for term in excluded {
+    budget.tick()
+    predicates[term.key()] = true
+  }
+  let seen : Map[String, Bool] = Map([])
+  let pairs = []
+  for q in data.scan(None, None, None, graph, budget) {
+    if predicates.contains(q.predicate.key()) {
+      continue
+    }
+    let (a, b) = if reverse {
+      (q.object, q.subject)
+    } else {
+      (q.subject, q.object)
+    }
+    let key = key_part(a.key()) + b.key()
+    if !seen.contains(key) {
+      seen[key] = true
+      pair_push(pairs, a, b, budget)
+    }
+  }
+  pairs
 }
 
 ///|
@@ -122,6 +160,17 @@ fn evaluate_path(
       raise Unsupported(0, "variables inside composite property paths")
     Inverse(inner) =>
       evaluate_path(data, inner, graph, extra, budget).map(p => (p.1, p.0))
+    Negated(forward, reverse) => {
+      let pairs = if !forward.is_empty() || reverse.is_empty() {
+        negated_pairs(data, graph, forward, false, budget)
+      } else {
+        []
+      }
+      if !reverse.is_empty() {
+        pairs.append(negated_pairs(data, graph, reverse, true, budget))
+      }
+      pairs
+    }
     Alternative(left, right) => {
       let a = evaluate_path(data, left, graph, extra, budget)
       let b = evaluate_path(data, right, graph, extra, budget)

@@ -14,7 +14,7 @@ pub fn language_literal(String, String) -> Term raise QueryError
 
 pub fn literal(String) -> Term
 
-pub fn prepare(String, limits? : Limits) -> PreparedQuery raise QueryError
+pub fn prepare(String, limits? : Limits, base_uri? : String) -> PreparedQuery raise QueryError
 
 pub fn quad(Term, Term, Term, graph? : Term) -> Quad raise QueryError
 
@@ -56,7 +56,8 @@ pub struct Dataset {
   // private fields
 }
 pub fn Dataset::apply_patch(Self, Array[Quad], Array[Quad], limits? : Limits) -> Self raise QueryError
-pub fn Dataset::from_quads(Array[Quad], limits? : Limits) -> Self raise QueryError
+pub fn Dataset::from_documents(String, Array[(Term, String)], limits? : Limits) -> Self raise QueryError
+pub fn Dataset::from_quads(Array[Quad], named_graphs? : Array[Term], limits? : Limits) -> Self raise QueryError
 pub fn Dataset::from_turtle(String, limits? : Limits) -> Self raise QueryError
 pub fn Dataset::graph_names(Self) -> Array[Term]
 pub fn Dataset::length(Self) -> Int32
@@ -92,8 +93,10 @@ pub fn Limits::to_repr(Self) -> @debug.Repr
 pub struct PreparedQuery {
   // private fields
 }
+pub fn PreparedQuery::dataset_sources(Self) -> Array[(Term, Bool)]
 pub fn PreparedQuery::execute(Self, Dataset) -> QueryResult raise QueryError
 pub fn PreparedQuery::form(Self) -> String
+pub fn PreparedQuery::profile(Self) -> QueryProfile
 
 pub struct Quad {
   // private fields
@@ -105,6 +108,11 @@ pub fn Quad::object(Self) -> Term
 pub fn Quad::predicate(Self) -> Term
 pub fn Quad::subject(Self) -> Term
 pub fn Quad::to_repr(Self) -> @debug.Repr
+
+pub struct QueryProfile {
+  // private fields
+}
+pub fn QueryProfile::to_json(Self) -> String
 
 pub struct QueryResult {
   // private fields

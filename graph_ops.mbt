@@ -19,13 +19,14 @@ fn compatible_join(
 
 ///|
 fn passes_filters(
+  active : GraphContext,
   row : Binding,
-  group : Group,
+  filters : Array[Expr],
   budget : Budget,
 ) -> Bool raise QueryError {
-  let context = EvalContext::{ row, budget, group: None, }
-  for pattern in group.patterns {
-    if pattern is Filter(expression) && expression.truth(context) != Some(true) {
+  let context = EvalContext::{ row, budget, group: None, active, }
+  for expression in filters {
+    if expression.truth(context) != Some(true) {
       return false
     }
   }
@@ -33,14 +34,30 @@ fn passes_filters(
 }
 
 ///|
+fn Group::filters(self : Group) -> Array[Expr] {
+  let filters = []
+  for pattern in self.patterns {
+    if pattern is Filter(expression) {
+      filters.push(expression)
+    }
+  }
+  filters
+}
+
+///|
 fn apply_filters(
+  active : GraphContext,
   rows : Array[Binding],
   group : Group,
   budget : Budget,
 ) -> Array[Binding] raise QueryError {
+  let filters = group.filters()
+  if filters.is_empty() {
+    return rows
+  }
   let output = []
   for row in rows {
-    if passes_filters(row, group, budget) {
+    if passes_filters(active, row, filters, budget) {
       output.push(row)
     }
   }
@@ -49,22 +66,22 @@ fn apply_filters(
 
 ///|
 fn optional_join(
-  data : Dataset,
+  active : GraphContext,
   left : Array[Binding],
   group : Group,
-  graph : Term?,
   budget : Budget,
 ) -> Array[Binding] raise QueryError {
   // FILTER directly inside OPTIONAL is the LeftJoin condition. Nested filters
   // retain their own scope and must not accidentally capture outer bindings.
   let body = Group::{ patterns: group.patterns.filter(p => !(p is Filter(_))), }
-  let right = evaluate_group(data, body, [Binding::empty()], graph, budget)
+  let right = evaluate_group(active, body, [Binding::empty()], budget)
+  let filters = group.filters()
   let output = []
   for a in left {
     let mut matched = false
     for b in right {
       budget.tick()
-      if a.merge(b) is Some(row) && passes_filters(row, group, budget) {
+      if a.merge(b) is Some(row) && passes_filters(active, row, filters, budget) {
         matched = true
         output.push(row)
         budget.rows(output.length())
@@ -104,23 +121,23 @@ fn minus_join(
 
 ///|
 fn named_graph_join(
-  data : Dataset,
+  active : GraphContext,
   left : Array[Binding],
   slot : Slot,
   group : Group,
   budget : Budget,
 ) -> Array[Binding] raise QueryError {
   let output = []
-  for name in data.names {
+  for name in active.data.names {
+    budget.tick()
     match slot {
       Fixed(t) => if t != name { continue }
       _ => ()
     }
     let right = evaluate_group(
-      data,
+      { ..active, graph: Some(name), },
       group,
       [Binding::empty()],
-      Some(name),
       budget,
     )
     let named = []

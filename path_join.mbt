@@ -5,36 +5,61 @@ fn bounded_path(
   graph : Term?,
   s : Term?,
   o : Term?,
+  extras : Array[Term],
   budget : Budget,
 ) -> Array[(Term, Term)] raise QueryError {
-  let extras = []
-  if s is Some(t) {
-    extras.push(t)
-  }
-  if o is Some(t) {
-    extras.push(t)
-  }
   match path {
     ZeroMore(inner) | OneMore(inner) => {
       let zero = path is ZeroMore(_)
       if s is Some(start) {
+        let include_zero = zero &&
+          path_zero_node(data, graph, start, extras, budget)
         return path_closure(
           evaluate_path(data, inner, graph, extras, budget),
           [start],
-          zero,
+          include_zero,
           budget,
         )
       }
       if o is Some(end) {
+        let include_zero = zero &&
+          path_zero_node(data, graph, end, extras, budget)
         let reverse = evaluate_path(data, inner, graph, extras, budget).map(p => {
           (p.1, p.0)
         })
-        return path_closure(reverse, [end], zero, budget).map(p => (p.1, p.0))
+        return path_closure(reverse, [end], include_zero, budget).map(p => {
+          (p.1, p.0)
+        })
       }
     }
     _ => ()
   }
   evaluate_path(data, path, graph, extras, budget)
+}
+
+///|
+fn path_zero_node(
+  data : Dataset,
+  graph : Term?,
+  node : Term,
+  constants : Array[Term],
+  budget : Budget,
+) -> Bool raise QueryError {
+  if constants.contains(node) {
+    return true
+  }
+  for (s, o) in [(Some(node), None), (None, Some(node))] {
+    for i in data.candidate_ids(s, None, o, graph) {
+      budget.tick()
+      let fact = data.facts[i]
+      if fact.graph == graph &&
+        matches_term(s, fact.subject) &&
+        matches_term(o, fact.object) {
+        return true
+      }
+    }
+  }
+  false
 }
 
 ///|
@@ -49,6 +74,12 @@ fn join_property_path(
 ) -> Array[Binding] raise QueryError {
   let cache : Map[String, Array[(Term, Term)]] = Map([])
   let output = []
+  let constants = []
+  for slot in [subject, object] {
+    if slot is Fixed(term) {
+      constants.push(term)
+    }
+  }
   for row in input {
     let s = row.resolve(subject)
     let o = row.resolve(object)
@@ -64,7 +95,7 @@ fn join_property_path(
     let pairs = match cache.get(key) {
       Some(pairs) => pairs
       None => {
-        let pairs = bounded_path(data, path, graph, s, o, budget)
+        let pairs = bounded_path(data, path, graph, s, o, constants, budget)
         cache[key] = pairs
         pairs
       }

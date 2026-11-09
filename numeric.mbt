@@ -232,3 +232,61 @@ fn numeric_op(
   }
   result.term(digits)
 }
+
+///|
+fn numeric_cast(name : String) -> Bool {
+  name == xsd_namespace() + "integer" || name == xsd_namespace() + "double"
+}
+
+///|
+fn truncate_double(value : Double) -> @bigint.BigInt raise QueryError {
+  if value.is_nan() || value.is_pos_inf() || value.is_neg_inf() {
+    raise Evaluation("cannot cast non-finite number to integer")
+  }
+  let bits = value.reinterpret_as_uint64()
+  let exponent = ((bits >> 52) & 0x7ffUL).to_int() - 1023
+  if exponent < 0 {
+    return @bigint.BigInt::from_int(0)
+  }
+  let significand = @bigint.BigInt::from_uint64(
+    (bits & 0xfffffffffffffUL) | 0x10000000000000UL,
+  )
+  let magnitude = if exponent >= 52 {
+    significand << (exponent - 52)
+  } else {
+    significand >> (52 - exponent)
+  }
+  if value < 0.0 {
+    -magnitude
+  } else {
+    magnitude
+  }
+}
+
+///|
+fn cast_numeric(
+  datatype : String,
+  value : Term,
+  budget : Budget,
+) -> Term raise QueryError {
+  let digits = budget.limits.max_numeric_digits
+  budget.tick(n=value.lexical.length())
+  let n = if value.kind == LiteralKind &&
+    value.datatype == xsd_namespace() + "string" {
+    numeric(typed_literal(value.lexical, datatype), digits)
+  } else if value.kind == LiteralKind &&
+    value.datatype == xsd_namespace() + "boolean" {
+    numeric(integer(if ebv(value, digits) { 1 } else { 0 }), digits)
+  } else {
+    numeric(value, digits)
+  }
+  if datatype == xsd_namespace() + "double" {
+    Floating(n.as_double()).term(digits)
+  } else {
+    let value = match n {
+      Exact(value, scale, _) => value / pow10(scale)
+      Floating(value) => truncate_double(value)
+    }
+    Exact(value, 0, false).term(digits)
+  }
+}

@@ -6,6 +6,7 @@ pub struct Dataset {
   priv objects : Map[String, Array[Int32]]
   priv graphs : Map[String, Array[Int32]]
   priv names : Array[Term]
+  priv declared_names : Array[Term]
 }
 
 ///|
@@ -31,11 +32,15 @@ fn index_add(
 ///|
 pub fn Dataset::from_quads(
   quads : Array[Quad],
+  named_graphs~ : Array[Term] = [],
   limits~ : Limits = Limits::default(),
 ) -> Dataset raise QueryError {
   limits.validate()
   if quads.length() > limits.max_triples {
     raise Resource("input quads")
+  }
+  if named_graphs.length() > limits.max_triples {
+    raise Resource("named graphs")
   }
   let facts : Array[Quad] = []
   let subjects = Map([])
@@ -45,6 +50,17 @@ pub fn Dataset::from_quads(
   let names : Array[Term] = []
   let seen : Map[String, Bool] = Map([])
   let named : Map[String, Bool] = Map([])
+  for name in named_graphs {
+    if name.kind != IriKind {
+      raise InvalidInput("named graph requires an IRI")
+    }
+    if !named.contains(name.key()) {
+      named[name.key()] = true
+      names.push(name)
+      graphs[name.key()] = []
+    }
+  }
+  let declared_names = names.copy()
   for q in quads {
     let key = q.key()
     if seen.get(key) is None {
@@ -65,7 +81,10 @@ pub fn Dataset::from_quads(
       }
     }
   }
-  { facts, subjects, predicates, objects, graphs, names, }
+  if names.length() > limits.max_triples {
+    raise Resource("named graphs")
+  }
+  { facts, subjects, predicates, objects, graphs, names, declared_names, }
 }
 
 ///|
