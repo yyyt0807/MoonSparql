@@ -69,7 +69,7 @@ async fn main {
   let args = @env.args()
   let limits = @q.Limits::default()
   if args.length() == 2 && args[1] == "version" {
-    println("moonsparql 0.1.0")
+    println("moonsparql 0.2.0")
     return
   }
   if args.length() == 3 && args[1] == "--inspect" {

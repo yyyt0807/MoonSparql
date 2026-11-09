@@ -1,6 +1,6 @@
 # MoonSparql 增量功能：2026-11-06
 
-状态：本地未发布增量。使用本目录源码运行，已发布的 0.1.0 不包含本页新增 API。
+本页的 API 自 0.2.0 起可用。
 
 ## 独立空白节点作用域的 RDF 合并与按列对齐的 SELECT 袋并集
 `Dataset::merge_scoped(other, limits~)` 合并来自独立文档的 RDF 数据集。

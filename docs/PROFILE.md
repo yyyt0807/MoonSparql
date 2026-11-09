@@ -1,7 +1,6 @@
 # SPARQL execution profile
 
-This profile describes the current in-memory implementation. The compatibility
-additions are in the local source. The existing published version is 0.1.0.
+This profile describes the in-memory implementation in MoonSparql 0.2.0.
 Semantics follow the [SPARQL 1.1 Query Recommendation](https://www.w3.org/TR/sparql11-query/).
 
 ## Supported language

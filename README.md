@@ -4,12 +4,12 @@ MoonSparql is a bounded, in-process RDF query engine written in MoonBit.
 It extends existing RDF IO libraries with query execution: joins, optional facts,
 aggregates and paths return bindings or a derived graph.
 
-Module: `yyyt0807/moonsparql@0.1.0`. Repository:
+Install `yyyt0807/moonsparql@0.2.0` from Mooncakes. The source is maintained at
 [yyyt0807/MoonSparql](https://github.com/yyyt0807/MoonSparql).
 Repository owner and maintenance commit identity: `yyyt0807`.
 
 ```sh
-moon add yyyt0807/moonsparql@0.1.0
+moon add yyyt0807/moonsparql@0.2.0
 ```
 
 ## Run
@@ -88,19 +88,19 @@ Each example contains assertions for its outputs. The 10,000-fact scale example
 verifies indexed lookup work and an exact aggregate, without claiming a timing
 advantage over another engine.
 
-## Query compatibility in the current source
+## Query compatibility in 0.2.0
 
-The local implementation supports SELECT subqueries, EXISTS and NOT EXISTS,
+MoonSparql supports SELECT subqueries, EXISTS and NOT EXISTS,
 negated property sets, GROUP_CONCAT, GROUP BY aliases, trailing VALUES, and
 local FROM and FROM NAMED datasets. Extended string and date-time builtins and
 selected datatype casts are documented with their limits in the
 [query profile](docs/PROFILE.md).
 
-The pinned W3C suite runs 236 query evaluations. The local result is 219 passes
+The pinned W3C suite runs 236 query evaluations. The release checks show 219 passes
 and 17 documented unsupported-function cases. Coverage and reproduction
 commands appear in the [query profile](docs/PROFILE.md).
 
-Three additional interfaces support integration from the current source.
+Three interfaces support integration in this release.
 
 - `Dataset::from_documents` assembles independent RDF sources with named and
   empty graph support. The Native CLI accepts the same catalogue with
@@ -118,8 +118,7 @@ python scripts/check_w3c.py _build/native/debug/build/cmd/main/main.exe --fetch
 ```
 
 The example joins a release catalogue with an advisory graph, aggregates the
-eligible versions and exports a version subgraph. These compatibility additions
-are available in the local source.
+eligible versions and exports a version subgraph.
 
 ## Ecosystem integration and sources
 
@@ -138,8 +137,8 @@ Architecture and costs: [docs/architecture.md](docs/architecture.md).
 **精确前置条件的原子数据补丁**（`Dataset::apply_patch`）；**SELECT结果多重集变化分析**（`QueryResult::binding_delta`）。详见[功能、用途和边界](docs/NOVEMBER_FEATURES.md)，运行 `moon run examples/november --target native --deny-warn`。这些功能纳入 0.1.0 首次公开发布。
 
 
-## 本地开发增量（未发布）
+## RDF 数据集与结果合并
 
 新增 **独立空白节点作用域的 RDF 合并**、**按列对齐的 SELECT 袋并集**，用途、限制和复杂度见 [功能文档](docs/EXPANSION_20261106.md)。
 从本仓库源码运行 `moon run examples/expansion --target native --deny-warn`。
-本节 API 尚未包含在已发布的 0.1.0 中。
+这两项 API 自 0.2.0 起可用。

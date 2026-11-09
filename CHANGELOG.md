@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 2026-11-09
+## 0.2.0 — 2026-11-09
 
 - 完善 SELECT 子查询、EXISTS／NOT EXISTS、否定属性集合及零长度路径语义。
 - 支持 GROUP_CONCAT、分组别名、尾部 VALUES、字符串与日期时间内置函数，以及 integer／double 转换。
