@@ -22,24 +22,8 @@ jobs:
           python-version: '3.11'
       - uses: hustcer/setup-moonbit@v1
         with:
-          version: '0.10.16+b1a0e846e'
-          core-version: '0.10.16+b1a0e846e'
-      - name: Windows compiler paths
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          ./tools/windows/build-shim.ps1
-          $shim = Join-Path $PWD '_build/windows-path-shims'
-          foreach ($tool in @('MOONC', 'MOONFMT', 'MOONINFO', 'MOONDOC')) {
-            $toolPath = Join-Path $shim "$($tool.ToLower()).exe"
-            "${tool}_OVERRIDE=$toolPath" >> $env:GITHUB_ENV
-          }
-          $env:MOONC_OVERRIDE = Join-Path $shim 'moonc.exe'
-          Push-Location (Join-Path $env:USERPROFILE '.moon/lib/core')
-          try {
-            moon bundle --all --warn-list -a
-            if ($LASTEXITCODE -ne 0) { throw 'Core bundle failed' }
-          } finally { Pop-Location }
+          version: '0.10.20+65efd5b93'
+          core-version: '0.10.20+65efd5b93'
       - name: Resolve dependencies
         run: |
           moon version --all

@@ -16,7 +16,9 @@ moon add yyyt0807/moonsparql@0.2.0
 
 ## Run
 
-Build from source with the MoonBit compiler/core pair `0.10.16+b1a0e846e` and a C compiler for the Native CLI. Moonc `v0.10.20+65efd5b93` fails to link MoonTTL 0.3.0 on Windows. Use the pinned pair for builds and tests.
+Build from source with the MoonBit compiler/core pair `0.10.20+65efd5b93`
+and a C compiler for the Native CLI. On Windows, install MSVC Build Tools.
+See [MoonTTL linker compatibility](docs/QUERY_COMPATIBILITY.md#moonttl-linker-compatibility).
 
 ```sh
 moon update
@@ -30,12 +32,7 @@ moon run examples/scale --target native --release
 moon run cmd/main --target native -- examples/data/catalog.ttl examples/data/catalog.rq json
 ```
 
-On Windows, Moon 20261016 may pass extended DOS paths rejected by its OCaml
-compiler. Run `./tools/windows/moon.ps1` instead of `moon` for these commands;
-the adapter builds with MSVC and invokes the installed official compiler.
-It changes process-local overrides only.
-
-CI uses the validated official compiler/core pair `0.10.16+b1a0e846e` on
+CI pins the official compiler/core pair `0.10.20+65efd5b93` on
 Ubuntu and Windows. For independent common-profile verification after building
 the Native CLI:
 

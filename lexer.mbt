@@ -1,4 +1,5 @@
 ///|
+#derive(Eq)
 priv enum Lexeme {
   Word(String)
   Var(String)
@@ -7,7 +8,7 @@ priv enum Lexeme {
   NumToken(String)
   Symbol(String)
   EndToken
-} derive(Eq)
+}
 
 ///|
 priv struct Token {

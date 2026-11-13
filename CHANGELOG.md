@@ -6,6 +6,7 @@
 - Add DESCRIBE with bounded resource and blank-node graph export.
 - Add the five standard string hash functions and SELECT REDUCED.
 - Advance the pinned W3C evaluation gate to 229 of 236 passing cases.
+- Link core tuple defaults required by MoonTTL on MoonBit 0.10.20.
 
 ## 0.2.0 — 2026-11-09
 

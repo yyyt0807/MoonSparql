@@ -48,12 +48,13 @@ priv struct Group {
 }
 
 ///|
+#derive(Eq)
 priv enum QueryForm {
   Select
   Ask
   Construct
   Describe
-} derive(Eq)
+}
 
 ///|
 priv struct Projection {

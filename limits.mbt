@@ -1,4 +1,5 @@
 ///|
+#derive(@debug.Debug)
 pub(all) suberror QueryError {
   InvalidTerm(String)
   Syntax(Int32, String)
@@ -6,7 +7,7 @@ pub(all) suberror QueryError {
   Resource(String)
   Evaluation(String)
   InvalidInput(String)
-} derive(@debug.Debug)
+}
 
 ///|
 pub fn QueryError::message(self : QueryError) -> String {
@@ -21,6 +22,7 @@ pub fn QueryError::message(self : QueryError) -> String {
 }
 
 ///|
+#derive(Eq, @debug.Debug)
 pub(all) struct Limits {
   max_triples : Int32
   max_query_chars : Int32
@@ -31,7 +33,7 @@ pub(all) struct Limits {
   max_results : Int32
   max_path_pairs : Int32
   max_numeric_digits : Int32
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn Limits::default() -> Limits {

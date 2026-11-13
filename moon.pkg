@@ -6,7 +6,13 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/bigint",
   "moonbitlang/core/string" @str,
+  // MoonTTL's derived IriSpan::default needs the tuple implementations at link time.
+  "moonbitlang/core/tuple" @_,
   "moonbitstack/mooncrypt/hash/md5",
   "moonbitstack/mooncrypt/hash/sha1",
   "moonbitstack/mooncrypt/hash/sha2",
 }
+
+// The link-only import is not referenced by MoonSparql source.
+
+warnings = "-unused_package"

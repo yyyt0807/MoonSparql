@@ -1,17 +1,19 @@
 ///|
+#derive(Eq, @debug.Debug)
 pub(all) enum TermKind {
   IriKind
   BlankKind
   LiteralKind
-} derive(Eq, @debug.Debug)
+}
 
 ///|
+#derive(Eq, @debug.Debug)
 pub struct Term {
   priv kind : TermKind
   priv lexical : String
   priv datatype : String
   priv language : String?
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn xsd_namespace() -> String {
@@ -185,12 +187,13 @@ pub fn Term::ntriples(self : Term) -> String {
 }
 
 ///|
+#derive(Eq, @debug.Debug)
 pub struct Quad {
   priv subject : Term
   priv predicate : Term
   priv object : Term
   priv graph : Term?
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub fn quad(

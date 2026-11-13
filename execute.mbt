@@ -1,9 +1,10 @@
 ///|
+#derive(Eq, @debug.Debug)
 pub(all) struct ExecutionStats {
   steps : Int32
   peak_bindings : Int32
   path_pairs : Int32
-} derive(Eq, @debug.Debug)
+}
 
 ///|
 pub struct QueryResult {

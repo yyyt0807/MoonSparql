@@ -25,3 +25,18 @@ SPARQL leaves the description policy to the query service. MoonSparql walks the 
 The current milestone delivers the three additions above and retains existing RDF query, snapshot and result-difference APIs. Full conformance remains a project target and requires the remaining implementation and verification.
 
 SPARQL Update, the HTTP Protocol, Graph Store HTTP Protocol, entailment regimes, persistent storage and endpoint hosting are separate deliverables. The planned query-side SERVICE evaluator belongs to the full query compatibility target.
+
+## MoonTTL linker compatibility
+
+MoonTTL 0.3.0's IRI parser derives `Default` for `IriSpan`. Its span fields
+are pairs of integers. When linking with MoonBit `0.10.20+65efd5b93`,
+the generated code references the tuple trait implementation, but the
+dependency graph can omit `moonbitlang/core/tuple`. Wasm-GC reports
+`Key_not_found` for the tuple default symbol. Windows Native may report
+an internal `unbound scalar` in the generated `IriSpan` initializer.
+
+The MoonSparql package explicitly imports the standard-library tuple package
+so its implementation is linked. This uses the registry version of MoonTTL
+without a source patch. The package disables its local unused-import warning
+for this link-only dependency. CI builds and tests the four existing backends
+with the pinned compiler/core pair.

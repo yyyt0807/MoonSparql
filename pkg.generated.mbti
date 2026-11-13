@@ -27,6 +27,7 @@ pub fn validate_result_json(String) -> Bool
 pub fn xsd_namespace() -> String
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror QueryError {
   InvalidTerm(String)
   Syntax(Int32, String)
@@ -34,7 +35,7 @@ pub(all) suberror QueryError {
   Resource(String)
   Evaluation(String)
   InvalidInput(String)
-} derive(@debug.Debug)
+}
 pub fn QueryError::message(Self) -> String
 pub fn QueryError::to_repr(Self) -> @debug.Repr
 
@@ -65,15 +66,17 @@ pub fn Dataset::matching(Self, subject? : Term, predicate? : Term, object? : Ter
 pub fn Dataset::merge_scoped(Self, Self, limits? : Limits) -> Self raise QueryError
 pub fn Dataset::quads(Self) -> Array[Quad]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ExecutionStats {
   steps : Int32
   peak_bindings : Int32
   path_pairs : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn ExecutionStats::equal(Self, Self) -> Bool
 pub fn ExecutionStats::not_equal(Self, Self) -> Bool
 pub fn ExecutionStats::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Limits {
   max_triples : Int32
   max_query_chars : Int32
@@ -84,7 +87,7 @@ pub(all) struct Limits {
   max_results : Int32
   max_path_pairs : Int32
   max_numeric_digits : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Limits::default() -> Self
 pub fn Limits::equal(Self, Self) -> Bool
 pub fn Limits::not_equal(Self, Self) -> Bool
@@ -98,9 +101,10 @@ pub fn PreparedQuery::execute(Self, Dataset) -> QueryResult raise QueryError
 pub fn PreparedQuery::form(Self) -> String
 pub fn PreparedQuery::profile(Self) -> QueryProfile
 
+#derive(Eq, @debug.Debug)
 pub struct Quad {
   // private fields
-} derive(Eq, @debug.Debug)
+}
 pub fn Quad::equal(Self, Self) -> Bool
 pub fn Quad::graph(Self) -> Term?
 pub fn Quad::not_equal(Self, Self) -> Bool
@@ -128,9 +132,10 @@ pub fn QueryResult::to_tsv(Self) -> String
 pub fn QueryResult::union_bindings(Self, Self, shared_blank_scope? : Bool, limits? : Limits) -> Self raise QueryError
 pub fn QueryResult::variables(Self) -> Array[String]
 
+#derive(Eq, @debug.Debug)
 pub struct Term {
   // private fields
-} derive(Eq, @debug.Debug)
+}
 pub fn Term::datatype(Self) -> String?
 pub fn Term::equal(Self, Self) -> Bool
 pub fn Term::kind(Self) -> TermKind
@@ -140,11 +145,12 @@ pub fn Term::not_equal(Self, Self) -> Bool
 pub fn Term::ntriples(Self) -> String
 pub fn Term::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TermKind {
   IriKind
   BlankKind
   LiteralKind
-} derive(Eq, @debug.Debug)
+}
 pub fn TermKind::equal(Self, Self) -> Bool
 pub fn TermKind::not_equal(Self, Self) -> Bool
 pub fn TermKind::to_repr(Self) -> @debug.Repr
