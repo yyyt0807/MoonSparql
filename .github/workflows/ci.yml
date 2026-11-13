@@ -56,6 +56,7 @@ jobs:
           git diff --exit-code
       - name: Verify real scenarios
         run: |
+          moon run examples/query_standard --target wasm-gc --deny-warn
           moon run examples/asset_inventory --target native --deny-warn
           moon run examples/catalog_discovery --target native --deny-warn
           moon run examples/research_summary --target native --deny-warn

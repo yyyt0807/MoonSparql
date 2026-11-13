@@ -10,6 +10,7 @@ pub fn PreparedQuery::form(self : PreparedQuery) -> String {
     Select => "SELECT"
     Ask => "ASK"
     Construct => "CONSTRUCT"
+    Describe => "DESCRIBE"
   }
 }
 
@@ -280,8 +281,13 @@ pub fn prepare(
     Ask
   } else if p.word("CONSTRUCT") {
     Construct
+  } else if p.word("DESCRIBE") {
+    Describe
   } else {
-    raise Unsupported(p.position(), "expected SELECT, ASK or CONSTRUCT")
+    raise Unsupported(
+      p.position(),
+      "expected SELECT, ASK, CONSTRUCT or DESCRIBE",
+    )
   }
   let query = p.query(form)
   if p.current() != EndToken {
@@ -299,7 +305,28 @@ fn Parser::query(
   nested~ : Bool = false,
 ) -> Query raise QueryError {
   let distinct = form == Select && p.word("DISTINCT")
-  let all = form == Select && p.sym("*")
+  let reduced = form == Select && !distinct && p.word("REDUCED")
+  let all = (form == Select || form == Describe) && p.sym("*")
+  let describe = []
+  if form == Describe && !all {
+    while true {
+      match p.current() {
+        Var(_) => describe.push(Variable(p.variable()))
+        IriToken(_) | Word(_) if p.current() is IriToken(_) ||
+          (p.current() is Word(w) && w.contains(":")) => {
+          let term = p.read_term()
+          if term.kind != IriKind {
+            raise Syntax(p.position(), "DESCRIBE requires a variable or IRI")
+          }
+          describe.push(Fixed(term))
+        }
+        _ => break
+      }
+    }
+    if describe.is_empty() {
+      raise Syntax(p.position(), "DESCRIBE requires a variable, IRI or *")
+    }
+  }
   let projections = []
   let names : Map[String, Bool] = Map([])
   if form == Select && !all {
@@ -353,12 +380,15 @@ fn Parser::query(
     }
     datasets.push((source, named))
   }
-  if shorthand {
-    p.require_word("WHERE")
-  } else {
-    ignore(p.word("WHERE"))
+  let has_where = p.word("WHERE")
+  if shorthand && !has_where {
+    raise Syntax(p.position(), "expected WHERE")
   }
-  let group = p.group()
+  let group = if form == Describe && !has_where && p.current() != Symbol("{") {
+    Group::{ patterns: [], }
+  } else {
+    p.group()
+  }
   if shorthand {
     for pattern in group.patterns {
       match pattern {
@@ -443,6 +473,8 @@ fn Parser::query(
     projections,
     all,
     distinct,
+    reduced,
+    describe,
     base_uri: p.base_uri,
     group,
     group_by,

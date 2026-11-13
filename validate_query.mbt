@@ -86,7 +86,7 @@ fn validate_query(q : Query) -> Unit raise QueryError {
       allowed[name] = true
     }
   }
-  if grouped && q.all {
+  if grouped && q.form == Select && q.all {
     raise Syntax(0, "SELECT * with grouping is outside profile")
   }
   for expression in q.having {

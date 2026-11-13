@@ -1,0 +1,5 @@
+import {
+  "yyyt0807/moonsparql" @q,
+}
+
+pkgtype(kind: "executable")

@@ -19,6 +19,7 @@ fn aggregate_name(name : String) -> Bool {
 fn supported_function(name : String) -> Bool {
   extended_string_function(name) ||
   date_time_function(name) ||
+  hash_function(name) ||
   [
     "BOUND", "STR", "LANG", "DATATYPE", "ISIRI", "ISURI", "ISBLANK", "ISLITERAL",
     "ISNUMERIC", "SAMETERM", "STRLEN", "CONTAINS", "STRSTARTS", "STRENDS", "LCASE",
@@ -64,6 +65,9 @@ fn Parser::function_call(self : Parser, name : String) -> Expr raise QueryError 
         arguments.push(self.expression())
       }
       self.expect(")")
+    }
+    if hash_function(name) && arguments.length() != 1 {
+      raise Syntax(self.position(), name + " requires one argument")
     }
     Call(name, arguments)
   }

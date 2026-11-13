@@ -1,6 +1,6 @@
 name = "yyyt0807/moonsparql"
 
-version = "0.2.0"
+version = "0.3.0"
 
 repository = "https://github.com/yyyt0807/MoonSparql"
 
@@ -18,4 +18,5 @@ import {
   "thy1016/moonttl@0.3.0",
   "moonbitlang/async@0.22.5",
   "moonbitlang/quickcheck@0.15.0",
+  "moonbitstack/mooncrypt@0.3.1",
 }

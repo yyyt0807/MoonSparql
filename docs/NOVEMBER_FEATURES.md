@@ -27,6 +27,6 @@ Windows当前工具链路径问题沿用README的项目适配脚本；正式模�
 
 ## 范围
 
-不实现完整SPARQL1.1、SERVICE/UPDATE/DESCRIBE、推理、持久数据库或分布式执行；blank node需共用稳定标识范围，bag delta不会推断跨快照匿名节点同构。
+本页记录 0.1.0 的快照补丁和结果差异接口。blank node 需共用稳定标识范围，bag delta 按标识比较。完整 SPARQL 1.1 查询目标与当前进展见[兼容计划](QUERY_COMPATIBILITY.md)。
 
 现有查询语义和10,000事实规模测试；新增补丁原子性/命名图及bag差异/UNDEF/预算边界。 具体当前执行结果由本地检查记录提供，不以CI配置代替远端成功记录。

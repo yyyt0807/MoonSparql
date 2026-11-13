@@ -1,12 +1,13 @@
 # SPARQL execution profile
 
-This profile describes the in-memory implementation in MoonSparql 0.2.0.
-Semantics follow the [SPARQL 1.1 Query Recommendation](https://www.w3.org/TR/sparql11-query/).
+This profile describes the in-memory implementation in the current source.
+The target is full compatibility with the [SPARQL 1.1 Query Recommendation](https://www.w3.org/TR/sparql11-query/).
+See [current delivery and outstanding work](QUERY_COMPATIBILITY.md).
 
 ## Supported language
 
 - SELECT with explicit variables or expressions, SELECT *, ASK, CONSTRUCT
-  with a template, and CONSTRUCT WHERE with a triple-only pattern.
+  with a template, CONSTRUCT WHERE with a triple-only pattern, and DESCRIBE with IRIs, variables or `*`.
 - PREFIX and BASE, absolute and base-relative IRIs, explicit literals and
   language tags. An embedding application may pass `prepare(base_uri=...)`.
 - Basic graph patterns, predicate/object lists, nested groups, OPTIONAL,
@@ -20,7 +21,7 @@ Semantics follow the [SPARQL 1.1 Query Recommendation](https://www.w3.org/TR/spa
   Inner bindings remain scoped to the existence test.
 - Predicate paths, inverse, sequence, alternatives, zero/one-or-more,
   zero-or-one, and negated property sets with forward and reverse members.
-- DISTINCT, ORDER BY ASC/DESC, OFFSET, LIMIT, GROUP BY expressions and aliases,
+- DISTINCT, REDUCED, ORDER BY ASC/DESC, OFFSET, LIMIT, GROUP BY expressions and aliases,
   and HAVING. Trailing VALUES joins after grouping and HAVING.
 - COUNT (including * and DISTINCT), SUM, AVG, MIN, MAX, SAMPLE and GROUP_CONCAT
   with DISTINCT and an optional SEPARATOR. Concatenation order is unspecified.
@@ -29,6 +30,7 @@ Semantics follow the [SPARQL 1.1 Query Recommendation](https://www.w3.org/TR/spa
   STRLEN, CONTAINS, STRSTARTS, STRENDS, LCASE, UCASE, CONCAT, COALESCE, IF,
   LANGMATCHES, STRDT, STRLANG, ABS, CEIL, FLOOR, ROUND.
 - SUBSTR, STRBEFORE, STRAFTER, ENCODE_FOR_URI, REGEX and REPLACE.
+- MD5, SHA1, SHA256, SHA384 and SHA512 over the UTF-8 lexical form of an untagged string. Results are lowercase hexadecimal strings.
 - IRI and URI use the query base for relative string values. Recognized
   datatype conversion functions are `xsd:integer` and `xsd:double`.
 - YEAR, MONTH, DAY, HOURS, MINUTES, SECONDS, TIMEZONE and TZ on xsd:dateTime.
@@ -41,6 +43,8 @@ RDF facts form a set; solutions are bags. Unbound is absence from a binding,
 not an RDF null. FILTER expression errors reject that solution. BIND and
 projection errors leave their variable unbound. Resource errors propagate.
 CONSTRUCT template blanks are fresh per solution. Graph triples are deduplicated.
+DESCRIBE follows the graph policy in [Query compatibility](QUERY_COMPATIBILITY.md).
+REDUCED compares adjacent projected bindings before OFFSET and LIMIT.
 Fixed sequence and alternative paths preserve bag multiplicity. Repetition
 deduplicates reachable endpoints. Negated property sets deduplicate endpoints
 within each direction. For zero-length variable-to-variable paths the identity
@@ -102,9 +106,7 @@ Input character and token budgets are independent of the quad budget.
 
 ## Unsupported syntax
 
-Unsupported query forms and functions include SERVICE, UPDATE, DESCRIBE,
-REDUCED, explicit `_:` labels in query patterns, hash functions, BNODE(),
-NOW(), RAND(), UUID(), STRUUID(), unlisted casts and user-defined functions.
+Unsupported query forms and functions include SERVICE, UPDATE, explicit `_:` labels in query patterns, BNODE(), NOW(), RAND(), UUID(), STRUUID(), unlisted casts and user-defined functions.
 EXISTS with a BIND target that is already correlated is rejected. Subqueries
 cannot declare their own dataset. Correlation to a nested SELECT matches its
 projected variables after the subquery executes.
@@ -136,15 +138,15 @@ within their datatype. CONSTRUCT graphs compare by RDF isomorphism.
 | EXISTS | 6 | 6 |
 | Negation | 12 | 12 |
 | Property path | 33 | 33 |
-| Built-in functions | 59 | 76 |
+| Built-in functions | 69 | 76 |
 | Aggregates | 42 | 42 |
 | Grouping | 4 | 4 |
 | Bindings | 30 | 30 |
 | CONSTRUCT | 5 | 5 |
 | Dataset (SPARQL 1.0, shared query semantics) | 12 | 12 |
-| Total | 219 | 236 |
+| Total | 229 | 236 |
 
-The 17 unsupported-function cases are executed and recorded by exact case ID
+The seven unsupported-function cases are executed and recorded by exact case ID
 in [the compatibility baseline](../scripts/w3c_known_gaps.json). CI fails on
 other failures, a change in an expected failure kind or an unexpected pass.
 Coverage applies to the listed query evaluation manifests. The full syntax,

@@ -52,6 +52,7 @@ priv enum QueryForm {
   Select
   Ask
   Construct
+  Describe
 } derive(Eq)
 
 ///|
@@ -66,6 +67,8 @@ priv struct Query {
   projections : Array[Projection]
   all : Bool
   distinct : Bool
+  reduced : Bool
+  describe : Array[Slot]
   base_uri : String?
   group : Group
   group_by : Array[(Expr, String?)]

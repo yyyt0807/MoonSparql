@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — Unreleased
+
+- Target full W3C SPARQL 1.1 Query Language compatibility and track remaining gaps.
+- Add DESCRIBE with bounded resource and blank-node graph export.
+- Add the five standard string hash functions and SELECT REDUCED.
+- Advance the pinned W3C evaluation gate to 229 of 236 passing cases.
+
 ## 0.2.0 — 2026-11-09
 
 - 完善 SELECT 子查询、EXISTS／NOT EXISTS、否定属性集合及零长度路径语义。

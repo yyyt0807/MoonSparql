@@ -148,6 +148,23 @@ fn solution_variables(q : Query) -> Array[String] {
     let names = Map([])
     q.group.variables(names)
     q.trailing.variables(names)
+    if q.form == Describe {
+      for (_, group_name) in q.group_by {
+        if group_name is Some(name) {
+          names[name] = true
+        }
+      }
+    }
+    let result = names.keys().to_array()
+    result.sort()
+    result
+  } else if q.form == Describe {
+    let names = Map([])
+    for slot in q.describe {
+      if slot is Variable(name) {
+        names[name] = true
+      }
+    }
     let result = names.keys().to_array()
     result.sort()
     result
@@ -203,6 +220,7 @@ fn build_solutions(
   let seen : Map[String, Bool] = Map([])
   let result = []
   let mut offset = q.offset
+  let mut previous : Binding? = None
   for solution in ordered {
     if q.distinct {
       let key = solution.projected.key(variables)
@@ -210,6 +228,13 @@ fn build_solutions(
         continue
       }
       seen[key] = true
+    } else if q.reduced {
+      budget.tick(n=variables.length() + 1)
+      if previous is Some(row) &&
+        variables.all(name => row.get(name) == solution.projected.get(name)) {
+        continue
+      }
+      previous = Some(solution.projected)
     }
     if offset > 0 {
       offset -= 1

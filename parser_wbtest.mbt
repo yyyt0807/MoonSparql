@@ -25,7 +25,7 @@ test "prepare rejects malformed separators unsupported forms and overflow" {
     query in [
       "SELECT * {?s <urn:p> ?v ?a <urn:p> ?b}", "SELECT ?x ?x {}", "SELECT * {",
       "ASK {} LIMIT 2147483648", "ASK {SERVICE <https://example.org/> {}}", "INSERT DATA {}",
-      "ASK {} OFFSET -1", "SELECT REDUCED ?x {}",
+      "ASK {} OFFSET -1", "SELECT DISTINCT REDUCED ?x {}",
     ] {
     assert_true(rejects(() => prepare(query)))
   }

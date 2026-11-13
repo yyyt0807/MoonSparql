@@ -4,6 +4,8 @@ MoonSparql is a bounded, in-process RDF query engine written in MoonBit.
 It extends existing RDF IO libraries with query execution: joins, optional facts,
 aggregates and paths return bindings or a derived graph.
 
+The compatibility target is the complete [W3C SPARQL 1.1 Query Language](https://www.w3.org/TR/sparql11-query/). See [delivery scope and remaining gaps](docs/QUERY_COMPATIBILITY.md).
+
 Install `yyyt0807/moonsparql@0.2.0` from Mooncakes. The source is maintained at
 [yyyt0807/MoonSparql](https://github.com/yyyt0807/MoonSparql).
 Repository owner and maintenance commit identity: `yyyt0807`.
@@ -14,7 +16,7 @@ moon add yyyt0807/moonsparql@0.2.0
 
 ## Run
 
-Requires MoonBit 0.10.16 or newer and a C compiler for the Native CLI.
+Build from source with the MoonBit compiler/core pair `0.10.16+b1a0e846e` and a C compiler for the Native CLI. Moonc `v0.10.20+65efd5b93` fails to link MoonTTL 0.3.0 on Windows. Use the pinned pair for builds and tests.
 
 ```sh
 moon update
@@ -88,7 +90,17 @@ Each example contains assertions for its outputs. The 10,000-fact scale example
 verifies indexed lookup work and an exact aggregate, without claiming a timing
 advantage over another engine.
 
-## Query compatibility in 0.2.0
+## Query features in the 0.3.0 development source
+
+- `DESCRIBE` exports a resource description as RDF quads or N-Triples.
+- `MD5`, `SHA1`, `SHA256`, `SHA384` and `SHA512` generate UTF-8 content fingerprints within queries.
+- `SELECT REDUCED` suppresses adjacent equal projected bindings before slicing.
+
+```sh
+moon run examples/query_standard --target wasm-gc --deny-warn
+```
+
+## Query compatibility baseline in 0.2.0
 
 MoonSparql supports SELECT subqueries, EXISTS and NOT EXISTS,
 negated property sets, GROUP_CONCAT, GROUP BY aliases, trailing VALUES, and

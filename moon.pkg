@@ -6,4 +6,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/bigint",
   "moonbitlang/core/string" @str,
+  "moonbitstack/mooncrypt/hash/md5",
+  "moonbitstack/mooncrypt/hash/sha1",
+  "moonbitstack/mooncrypt/hash/sha2",
 }

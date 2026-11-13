@@ -69,7 +69,7 @@ async fn main {
   let args = @env.args()
   let limits = @q.Limits::default()
   if args.length() == 2 && args[1] == "version" {
-    println("moonsparql 0.2.0")
+    println("moonsparql 0.3.0")
     return
   }
   if args.length() == 3 && args[1] == "--inspect" {
@@ -97,9 +97,10 @@ async fn main {
       @q.Dataset::from_turtle(data_text, limits~),
     )
   }
-  if (query.form() == "CONSTRUCT") != (format == "rdf") {
+  let graph_result = query.form() == "CONSTRUCT" || query.form() == "DESCRIBE"
+  if graph_result != (format == "rdf") {
     raise Failure(
-      "CONSTRUCT requires rdf output; SELECT/ASK require json or tsv",
+      "CONSTRUCT/DESCRIBE require rdf output; SELECT/ASK require json or tsv",
     )
   }
   let result = query.execute(data)

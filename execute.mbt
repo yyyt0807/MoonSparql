@@ -315,13 +315,17 @@ pub fn PreparedQuery::execute(
     base_uri: q.base_uri,
   }
   let solutions = execute_solutions(active, q, budget)
-  let constructed = if q.form == Construct {
-    construct_graph(data, solutions, q.template, budget)
-  } else {
-    []
+  let constructed = match q.form {
+    Construct => construct_graph(data, solutions, q.template, budget)
+    Describe => describe_graph(data, q, solutions, budget)
+    _ => []
   }
   {
-    variables: solution_variables(q),
+    variables: if q.form == Select {
+      solution_variables(q)
+    } else {
+      []
+    },
     bindings: if q.form == Select {
       solutions.map(s => s.projected)
     } else {

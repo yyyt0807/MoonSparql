@@ -8,6 +8,7 @@
 - RDF input uses `thy1016/moonttl@0.3.0` (Apache-2.0):
   https://www.gitlink.org.cn/thy7/mbt.ttl . Its parser is a dependency, not an
   original contribution claimed by this project.
+- The SPARQL hash functions use the MD5, SHA-1 and SHA-2 packages in [moonbitstack/mooncrypt 0.3.1](https://github.com/moonbitstack/mooncrypt), licensed under Apache-2.0.
 - MoonBit core, async and quickcheck are Apache-2.0. The latter module versions
   are explicitly selected for current toolchain compatibility; query execution
   does not use a network service or async runtime.

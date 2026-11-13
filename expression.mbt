@@ -378,6 +378,9 @@ fn evaluate_call(
       }
     }
   }
+  if hash_function(name) {
+    return evaluate_hash(name, a, ctx.budget)
+  }
   match name {
     "IRI" | "URI" =>
       if a.kind == IriKind {
