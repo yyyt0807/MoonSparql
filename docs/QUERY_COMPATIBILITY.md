@@ -2,7 +2,7 @@
 
 MoonSparql targets complete compatibility with the [W3C SPARQL 1.1 Query Language](https://www.w3.org/TR/sparql11-query/), including its grammar, algebra, evaluation and error semantics over RDF datasets. The target covers all four query forms, solution modifiers, expressions, graph patterns, property paths, subqueries, aggregates, dataset semantics and the query-side SERVICE operator.
 
-## Current delivery for the 0.3.0 development milestone
+## Current delivery in 0.3.0
 
 | Capability | User value and acceptance |
 | --- | --- |

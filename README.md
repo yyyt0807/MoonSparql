@@ -6,12 +6,12 @@ aggregates and paths return bindings or a derived graph.
 
 The compatibility target is the complete [W3C SPARQL 1.1 Query Language](https://www.w3.org/TR/sparql11-query/). See [delivery scope and remaining gaps](docs/QUERY_COMPATIBILITY.md).
 
-Install `yyyt0807/moonsparql@0.2.0` from Mooncakes. The source is maintained at
+Install `yyyt0807/moonsparql@0.3.0` from Mooncakes. The source is maintained at
 [yyyt0807/MoonSparql](https://github.com/yyyt0807/MoonSparql).
 Repository owner and maintenance commit identity: `yyyt0807`.
 
 ```sh
-moon add yyyt0807/moonsparql@0.2.0
+moon add yyyt0807/moonsparql@0.3.0
 ```
 
 ## Run
@@ -87,7 +87,7 @@ Each example contains assertions for its outputs. The 10,000-fact scale example
 verifies indexed lookup work and an exact aggregate, without claiming a timing
 advantage over another engine.
 
-## Query features in the 0.3.0 development source
+## Query features in 0.3.0
 
 - `DESCRIBE` exports a resource description as RDF quads or N-Triples.
 - `MD5`, `SHA1`, `SHA256`, `SHA384` and `SHA512` generate UTF-8 content fingerprints within queries.

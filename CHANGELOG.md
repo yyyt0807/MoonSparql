@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — Unreleased
+## 0.3.0 — 2026-11-13
 
 - Target full W3C SPARQL 1.1 Query Language compatibility and track remaining gaps.
 - Add DESCRIBE with bounded resource and blank-node graph export.
