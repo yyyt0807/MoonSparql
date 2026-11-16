@@ -5,7 +5,18 @@ test "NOW uses one host clock across rows and subqueries and resets per executio
   )
   let data = Dataset::from_turtle("")
   let first = query.execute(data, now=Some("2026-11-16T08:30:00Z"))
+  let padded = query.execute(data, now=Some("  2026-11-16T08:30:00Z  "))
   assert_eq(first.bindings.length(), 2)
+  assert_eq(first.bindings[0].get("outer"), padded.bindings[0].get("outer"))
+  assert_true(
+    try {
+      ignore(query.execute(data, now=Some("2026-11-16T08:30:00")))
+      false
+    } catch {
+      InvalidInput(_) => true
+      _ => false
+    },
+  )
   for row in first.bindings {
     assert_eq(row.get("outer"), row.get("inner"))
     assert_eq(

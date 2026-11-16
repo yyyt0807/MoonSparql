@@ -308,7 +308,10 @@ pub fn PreparedQuery::execute(
     if lexical.length() > self.limits.max_query_chars {
       raise Resource("query clock lexical length")
     }
-    let time = typed_literal(lexical, xsd_namespace() + "dateTime")
+    let time = typed_literal(
+      lexical.trim().to_owned(),
+      xsd_namespace() + "dateTime",
+    )
     ignore(date_time_part("TIMEZONE", time, budget)) catch {
       Evaluation(_) =>
         raise InvalidInput(
