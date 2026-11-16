@@ -262,6 +262,12 @@ fn evaluate_call(
   ctx : EvalContext,
 ) -> Term raise QueryError {
   let digits = ctx.budget.limits.max_numeric_digits
+  if name == "NOW" {
+    guard ctx.budget.query_time is Some(time) else {
+      raise Evaluation("NOW requires a host-supplied query clock")
+    }
+    return time
+  }
   if name == "BOUND" {
     if args.length() != 1 {
       raise Evaluation("BOUND arity")

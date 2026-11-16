@@ -19,7 +19,7 @@ SPARQL leaves the description policy to the query service. MoonSparql walks the 
 | Status | Work |
 | --- | --- |
 | Partially implemented | Extend regex flags and XPath pattern semantics, datatype conversions and numeric promotion. Close grammar, scope and evaluation differences identified by standard test manifests. |
-| Pending implementation | Scoped BNODE allocation, execution-stable NOW, RAND and UUID functions, explicit blank-node labels in query patterns, and query-side SERVICE including variable endpoints and SERVICE SILENT. |
+| Pending implementation | Scoped BNODE allocation, RAND and UUID functions, explicit blank-node labels in query patterns, and query-side SERVICE including variable endpoints and SERVICE SILENT. |
 | Pending verification | Cover the remaining applicable positive and negative syntax and evaluation manifests, including the federation tests relevant to SERVICE. Document implementation-defined semantics. |
 
 The current milestone delivers the three additions above and retains existing RDF query, snapshot and result-difference APIs. Full conformance remains a project target and requires the remaining implementation and verification.

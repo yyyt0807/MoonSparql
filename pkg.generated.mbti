@@ -97,7 +97,7 @@ pub struct PreparedQuery {
   // private fields
 }
 pub fn PreparedQuery::dataset_sources(Self) -> Array[(Term, Bool)]
-pub fn PreparedQuery::execute(Self, Dataset) -> QueryResult raise QueryError
+pub fn PreparedQuery::execute(Self, Dataset, now? : String?) -> QueryResult raise QueryError
 pub fn PreparedQuery::form(Self) -> String
 pub fn PreparedQuery::profile(Self) -> QueryProfile
 

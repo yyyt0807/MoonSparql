@@ -41,8 +41,8 @@ test "result budget reports failure instead of silent truncation" {
 test "unknown features reject during prepare rather than after partial evaluation" {
   for
     text in [
-      "SELECT * {SERVICE <urn:server> {}}", "DESCRIBE \"not a resource\"", "SELECT (NOW() AS ?t) {}",
-      "SELECT * {} FROM <urn:remote>", "SELECT * {?s !?p ?o}",
+      "SELECT * {SERVICE <urn:server> {}}", "DESCRIBE \"not a resource\"", "SELECT * {} FROM <urn:remote>",
+      "SELECT * {?s !?p ?o}",
     ] {
     assert_true(rejects(() => prepare(text)))
   }

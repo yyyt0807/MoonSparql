@@ -18,6 +18,7 @@ fn aggregate_name(name : String) -> Bool {
 ///|
 fn supported_function(name : String) -> Bool {
   extended_string_function(name) ||
+  name == "NOW" ||
   date_time_function(name) ||
   hash_function(name) ||
   [
@@ -65,6 +66,9 @@ fn Parser::function_call(self : Parser, name : String) -> Expr raise QueryError 
         arguments.push(self.expression())
       }
       self.expect(")")
+    }
+    if name == "NOW" && !arguments.is_empty() {
+      raise Syntax(self.position(), "NOW takes no arguments")
     }
     if hash_function(name) && arguments.length() != 1 {
       raise Syntax(self.position(), name + " requires one argument")

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased - 2026-11-16
+
+- SPARQL 执行级时钟 NOW()
+
 ## 0.3.0 — 2026-11-13
 
 - Target full W3C SPARQL 1.1 Query Language compatibility and track remaining gaps.

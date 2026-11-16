@@ -247,7 +247,8 @@ def run_case(executable, manifest, case, root, input_file):
                           encoding="utf-8")
     graph_result = isinstance(expected, Graph)
     execution = subprocess.run(
-        [str(executable), "--dataset", str(input_file), str(query), "rdf" if graph_result else "json"],
+        [str(executable), "--dataset", str(input_file), str(query), "rdf" if graph_result else "json",
+         "--now", "2026-11-16T08:30:00Z"],
         capture_output=True, encoding="utf-8", errors="replace", timeout=20,
     )
     if execution.returncode:

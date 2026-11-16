@@ -151,3 +151,7 @@ Architecture and costs: [docs/architecture.md](docs/architecture.md).
 新增 **独立空白节点作用域的 RDF 合并**、**按列对齐的 SELECT 袋并集**，用途、限制和复杂度见 [功能文档](docs/EXPANSION_20261106.md)。
 从本仓库源码运行 `moon run examples/expansion --target native --deny-warn`。
 这两项 API 自 0.2.0 起可用。
+
+## SPARQL 执行级时钟 NOW() (Unreleased)
+
+`PreparedQuery::execute(data, now=Some(lexical))` 接收带时区的 `xsd:dateTime`，同一执行中的行和子查询共用一个值。CLI 支持末尾参数 `--now 2026-11-16T08:30:00Z`。省略时钟时 NOW() 求值出错。固定 W3C 清单通过数由 229 提升为 230（共 236 项）。

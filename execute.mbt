@@ -301,8 +301,23 @@ fn execute_solutions(
 pub fn PreparedQuery::execute(
   self : PreparedQuery,
   data : Dataset,
+  now~ : String? = None,
 ) -> QueryResult raise QueryError {
   let budget = Budget::new(self.limits)
+  if now is Some(lexical) {
+    if lexical.length() > self.limits.max_query_chars {
+      raise Resource("query clock lexical length")
+    }
+    let time = typed_literal(lexical, xsd_namespace() + "dateTime")
+    ignore(date_time_part("TIMEZONE", time, budget)) catch {
+      Evaluation(_) =>
+        raise InvalidInput(
+          "query clock must be a valid timezone-qualified xsd:dateTime",
+        )
+      e => raise e
+    }
+    budget.query_time = Some(time)
+  }
   let q = self.query
   if data.length() > self.limits.max_triples ||
     data.names.length() > self.limits.max_triples {

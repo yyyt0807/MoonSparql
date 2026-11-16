@@ -67,6 +67,13 @@ fn manifest_query(
 ///|
 async fn main {
   let args = @env.args()
+  let now = if args.length() >= 3 && args[args.length() - 2] == "--now" {
+    let time = args.pop().unwrap()
+    ignore(args.pop())
+    Some(time)
+  } else {
+    None
+  }
   let limits = @q.Limits::default()
   if args.length() == 2 && args[1] == "version" {
     println("moonsparql 0.3.0")
@@ -83,7 +90,7 @@ async fn main {
   if args.length() != 4 + shift ||
     !["json", "tsv", "rdf"].contains(args[3 + shift]) {
     raise Failure(
-      "usage: moonsparql [--dataset] DATA QUERY.rq json|tsv|rdf or --inspect QUERY.rq",
+      "usage: moonsparql [--dataset] DATA QUERY.rq json|tsv|rdf [--now XSD_DATETIME] or --inspect QUERY.rq",
     )
   }
   let data_text = read_input(args[1 + shift], limits)
@@ -103,7 +110,7 @@ async fn main {
       "CONSTRUCT/DESCRIBE require rdf output; SELECT/ASK require json or tsv",
     )
   }
-  let result = query.execute(data)
+  let result = query.execute(data, now~)
   println(
     match format {
       "rdf" => result.to_ntriples()
