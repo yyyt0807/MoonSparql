@@ -70,32 +70,45 @@ fn compile_sparql_regex(
   if pattern.length() > 256 {
     raise Resource("regex pattern characters")
   }
-  if flags.to_array().any(c => c != 'i') {
-    raise Evaluation("supported regex flag: i")
+  let opts = flags.to_array()
+  if opts.any(c => c != 'i' && c != 's') {
+    raise Evaluation("supported regex flags: i, s")
   }
-  // The core engine is automata based. Reject unbounded compilation expansion
-  // from counted repetition and charge a conservative input/pattern product.
+  let dot_all = opts.contains('s')
+  // Bound compilation expansion and charge the expanded input/pattern product.
+  let chars = pattern.to_array()
   let mut escaped = false
   let mut in_class = false
-  for c in pattern {
+  let mut in_posix = false
+  let rewritten = StringBuilder()
+  for i, c in chars {
     if escaped {
       escaped = false
     } else if c == '\\' {
       escaped = true
-    } else if c == '[' {
+    } else if c == '[' && !in_class {
       in_class = true
+    } else if c == '[' && i + 1 < chars.length() && chars[i + 1] == ':' {
+      in_posix = true
+    } else if c == ']' && in_posix {
+      in_posix = false
     } else if c == ']' {
       in_class = false
     } else if !in_class && (c == '{' || c == '}') {
       raise Evaluation("counted repetition is outside the regex profile")
+    } else if !in_class && c == '.' && !dot_all {
+      rewritten.write_string("[^\\n\\r]")
+      continue
     }
+    rewritten.write_char(c)
   }
-  let cost = (pattern.length() + 1).to_int64() * (input_size.to_int64() + 1L)
+  let body = rewritten.to_string()
+  let source = if opts.contains('i') { "(?i:" + body + ")" } else { body }
+  let cost = (source.length() + 1).to_int64() * (input_size.to_int64() + 1L)
   if cost > budget.limits.max_steps.to_int64() {
     raise Resource("regex work")
   }
   budget.tick(n=cost.to_int())
-  let source = if flags.is_empty() { pattern } else { "(?i:" + pattern + ")" }
   @str.Regex(source[:]) catch {
     _ => raise Evaluation("invalid regular expression")
   }

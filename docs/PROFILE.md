@@ -60,8 +60,9 @@ errors; COUNT removes error values. AVG over an empty group returns integer zero
 SAMPLE chooses the first valid term in evaluation order.
 
 REGEX and REPLACE use the MoonBit core automata engine. Supported flags are
-empty and `i`. Patterns are limited to 256 UTF-16 units. Counted repetition,
-XPath-specific class subtraction and flags `m`, `s`, `x` are outside the
+`i` and `s`, which can be combined. By default, `.` excludes LF and CR.
+Patterns are limited to 256 UTF-16 units. Counted repetition,
+XPath-specific class subtraction and flags `m`, `x` are outside the
 profile. REPLACE supports numbered captures, escaped dollar and backslash, and
 rejects empty matches. Expression errors leave the output unbound or reject the
 filter row. The execution budget also charges input/pattern work and replacement
