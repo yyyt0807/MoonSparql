@@ -302,8 +302,10 @@ pub fn PreparedQuery::execute(
   self : PreparedQuery,
   data : Dataset,
   now~ : String? = None,
+  entropy~ : (() -> UInt64)? = None,
 ) -> QueryResult raise QueryError {
   let budget = Budget::new(self.limits)
+  budget.entropy = entropy
   if now is Some(lexical) {
     if lexical.length() > self.limits.max_query_chars {
       raise Resource("query clock lexical length")

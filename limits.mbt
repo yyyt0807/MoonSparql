@@ -83,12 +83,24 @@ priv struct Budget {
   mut peak_bindings : Int32
   mut path_pairs : Int32
   mut query_time : Term?
+  mut entropy : (() -> UInt64)?
+  issued_uuids : Map[String, Bool]
+  mut blank_serial : Int32
 }
 
 ///|
 fn Budget::new(limits : Limits) -> Budget raise QueryError {
   limits.validate()
-  { limits, steps: 0, peak_bindings: 0, path_pairs: 0, query_time: None, }
+  {
+    limits,
+    steps: 0,
+    peak_bindings: 0,
+    path_pairs: 0,
+    query_time: None,
+    entropy: None,
+    issued_uuids: Map([]),
+    blank_serial: 0,
+  }
 }
 
 ///|

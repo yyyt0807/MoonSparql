@@ -268,6 +268,13 @@ fn evaluate_call(
     }
     return time
   }
+  match name {
+    "RAND" => return ctx.budget.random_term()
+    "UUID" => return ctx.budget.uuid_term()
+    "STRUUID" => return ctx.budget.struuid_term()
+    "BNODE" => return ctx.budget.fresh_query_blank(ctx.active.data)
+    _ => ()
+  }
   if name == "BOUND" {
     if args.length() != 1 {
       raise Evaluation("BOUND arity")

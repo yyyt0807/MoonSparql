@@ -18,7 +18,7 @@ fn aggregate_name(name : String) -> Bool {
 ///|
 fn supported_function(name : String) -> Bool {
   extended_string_function(name) ||
-  name == "NOW" ||
+  ["NOW", "RAND", "UUID", "STRUUID", "BNODE"].contains(name) ||
   date_time_function(name) ||
   hash_function(name) ||
   [
@@ -67,8 +67,15 @@ fn Parser::function_call(self : Parser, name : String) -> Expr raise QueryError 
       }
       self.expect(")")
     }
-    if name == "NOW" && !arguments.is_empty() {
-      raise Syntax(self.position(), "NOW takes no arguments")
+    if ["NOW", "RAND", "UUID", "STRUUID"].contains(name) &&
+      !arguments.is_empty() {
+      raise Syntax(self.position(), name + " takes no arguments")
+    }
+    if name == "BNODE" && arguments.length() > 1 {
+      raise Syntax(self.position(), "BNODE takes at most one argument")
+    }
+    if name == "BNODE" && arguments.length() == 1 {
+      raise Unsupported(self.position(), "labeled BNODE")
     }
     if hash_function(name) && arguments.length() != 1 {
       raise Syntax(self.position(), name + " requires one argument")
