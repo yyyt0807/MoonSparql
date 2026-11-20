@@ -61,6 +61,40 @@ fn encode_for_uri(text : String, budget : Budget) -> String raise QueryError {
 }
 
 ///|
+// Estimate the extra states from one counted repetition of an atomic pattern.
+fn counted_repeat_limit(
+  chars : Array[Char],
+  from : Int32,
+) -> (Int32, Int32) raise QueryError {
+  let mut limit = 0
+  let mut digits = 0
+  let mut first : Int32? = None
+  for i = from; i < chars.length(); i = i + 1 {
+    let c = chars[i]
+    if c >= '0' && c <= '9' {
+      limit = limit * 10 + c.to_int() - 48
+      digits += 1
+      if limit > 256 {
+        raise Resource("regex counted repetition")
+      }
+    } else if c == ',' && digits != 0 && first is None {
+      first = Some(limit)
+      limit = 0
+      digits = 0
+    } else if c == '}' && (digits != 0 || first is Some(_)) {
+      let minimum = first.unwrap_or(limit)
+      if digits != 0 && limit < minimum {
+        raise Evaluation("reversed regex repetition range")
+      }
+      return (i, if digits == 0 { minimum + 1 } else { limit })
+    } else {
+      raise Evaluation("invalid regex counted repetition")
+    }
+  }
+  raise Evaluation("unterminated regex counted repetition")
+}
+
+///|
 fn compile_sparql_regex(
   pattern : String,
   flags : String,
@@ -81,7 +115,13 @@ fn compile_sparql_regex(
   let mut in_class = false
   let mut in_posix = false
   let rewritten = StringBuilder()
+  let mut repetition_end = -1
+  let mut repetition_states = 0
   for i, c in chars {
+    if i <= repetition_end {
+      rewritten.write_char(c)
+      continue
+    }
     if escaped {
       escaped = false
     } else if c == '\\' {
@@ -94,8 +134,15 @@ fn compile_sparql_regex(
       in_posix = false
     } else if c == ']' {
       in_class = false
-    } else if !in_class && (c == '{' || c == '}') {
-      raise Evaluation("counted repetition is outside the regex profile")
+    } else if !in_class && c == '{' {
+      if i == 0 || chars[i - 1] == ')' {
+        raise Evaluation("counted repetition requires a single regex atom")
+      }
+      let (last, count) = counted_repeat_limit(chars, i + 1)
+      repetition_end = last
+      repetition_states += count
+    } else if !in_class && c == '}' {
+      raise Evaluation("unmatched regex repetition delimiter")
     } else if !in_class && c == '.' && !dot_all {
       rewritten.write_string("[^\\n\\r]")
       continue
@@ -104,7 +151,8 @@ fn compile_sparql_regex(
   }
   let body = rewritten.to_string()
   let source = if opts.contains('i') { "(?i:" + body + ")" } else { body }
-  let cost = (source.length() + 1).to_int64() * (input_size.to_int64() + 1L)
+  let cost = (source.length() + repetition_states + 1).to_int64() *
+    (input_size.to_int64() + 1L)
   if cost > budget.limits.max_steps.to_int64() {
     raise Resource("regex work")
   }
