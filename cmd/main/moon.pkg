@@ -2,6 +2,7 @@ import {
   "yyyt0807/moonsparql" @q,
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/random",
   "moonbitlang/async",
   "moonbitlang/async/fs",
 }

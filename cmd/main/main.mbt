@@ -110,7 +110,11 @@ async fn main {
       "CONSTRUCT/DESCRIBE require rdf output; SELECT/ASK require json or tsv",
     )
   }
-  let result = query.execute(data, now~)
+  let entropy = @env.rand(32).map(seed => {
+    let random = @random.Rand::chacha8(seed~)
+    () => random.uint64()
+  })
+  let result = query.execute(data, now~, entropy~)
   println(
     match format {
       "rdf" => result.to_ntriples()
