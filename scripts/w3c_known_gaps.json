@@ -1,8 +1,6 @@
 {
-  "functions/bnode01": {"kind": "unsupported", "reason": "BNODE function with per-solution allocation"},
-  "functions/bnode02": {"kind": "unsupported", "reason": "BNODE function with per-solution allocation"},
-  "functions/rand01": {"kind": "unsupported", "reason": "RAND random function"},
-  "functions/uuid01": {"kind": "unsupported", "reason": "UUID random function"},
-  "functions/uuid02": {"kind": "unsupported", "reason": "UUID random function"},
-  "functions/struuid01": {"kind": "unsupported", "reason": "STRUUID random function"}
+  "functions/bnode01": {
+    "kind": "unsupported",
+    "reason": "labeled BNODE requires per-solution allocation"
+  }
 }
