@@ -155,3 +155,7 @@ Architecture and costs: [docs/architecture.md](docs/architecture.md).
 ## SPARQL 执行级时钟 NOW() (Unreleased)
 
 `PreparedQuery::execute(data, now=Some(lexical))` 接收带时区的 `xsd:dateTime`，同一执行中的行和子查询共用一个值。CLI 支持末尾参数 `--now 2026-11-16T08:30:00Z`。省略时钟时 NOW() 求值出错。固定 W3C 清单通过数由 229 提升为 230（共 236 项）。
+
+## November additions
+
+Queries may now evaluate `RAND()`, `UUID()`, `STRUUID()` and zero-argument `BNODE()`. Library callers can supply `entropy` as a function returning a fresh 64-bit word. The Native CLI uses platform entropy when available. UUID functions output version-4 identifiers and reject repeated identifiers within an execution. Blank nodes allocated during one execution are distinct from one another and from the active dataset's blank nodes. REGEX and REPLACE accept bounded counted repetition on single atoms. `BNODE(string)` and `SERVICE` remain compatibility milestones.

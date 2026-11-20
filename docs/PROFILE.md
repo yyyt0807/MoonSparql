@@ -61,7 +61,7 @@ SAMPLE chooses the first valid term in evaluation order.
 
 REGEX and REPLACE use the MoonBit core automata engine. Supported flags are
 `i` and `s`, which can be combined. By default, `.` excludes LF and CR.
-Patterns are limited to 256 UTF-16 units. Counted repetition,
+Patterns are limited to 256 UTF-16 units. Counted repetition is limited to single atoms and bounds up to 256.
 XPath-specific class subtraction and flags `m`, `x` are outside the
 profile. REPLACE supports numbered captures, escaped dollar and backslash, and
 rejects empty matches. Expression errors leave the output unbound or reject the
@@ -107,7 +107,7 @@ Input character and token budgets are independent of the quad budget.
 
 ## Unsupported syntax
 
-Unsupported query forms and functions include SERVICE, UPDATE, explicit `_:` labels in query patterns, BNODE(), NOW(), RAND(), UUID(), STRUUID(), unlisted casts and user-defined functions.
+Unsupported query forms and functions include SERVICE, UPDATE, explicit `_:` labels in query patterns, BNODE(string), unlisted casts and user-defined functions.
 EXISTS with a BIND target that is already correlated is rejected. Subqueries
 cannot declare their own dataset. Correlation to a nested SELECT matches its
 projected variables after the subquery executes.

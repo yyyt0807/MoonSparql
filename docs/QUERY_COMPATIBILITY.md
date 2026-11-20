@@ -14,12 +14,16 @@ Run the integration scenario with `moon run examples/query_standard --target was
 
 SPARQL leaves the description policy to the query service. MoonSparql walks the selected default graph as described above. Work is proportional to selected bindings and candidate postings visited, with space for visited resources and output. Hashing uses linear work and UTF-8 encoding space in input size. REDUCED compares projected terms and holds one preceding binding reference. The existing evaluator still materializes solutions and any required sort.
 
+## Development expression support
+
+Zero-argument BNODE allocates a fresh blank node. RAND, UUID and STRUUID consume caller-provided entropy. The Native CLI supplies platform entropy. The pinned W3C run passes 235 of 236 cases. The remaining case exercises `BNODE(string)`.
+
 ## Work outstanding on the full compatibility target
 
 | Status | Work |
 | --- | --- |
 | Partially implemented | Extend regex flags and XPath pattern semantics, datatype conversions and numeric promotion. Close grammar, scope and evaluation differences identified by standard test manifests. |
-| Pending implementation | Scoped BNODE allocation, RAND and UUID functions, explicit blank-node labels in query patterns, and query-side SERVICE including variable endpoints and SERVICE SILENT. |
+| Pending implementation | Labeled BNODE allocation, explicit blank-node labels in query patterns, and query-side SERVICE including variable endpoints and SERVICE SILENT. |
 | Pending verification | Cover the remaining applicable positive and negative syntax and evaluation manifests, including the federation tests relevant to SERVICE. Document implementation-defined semantics. |
 
 The current milestone delivers the three additions above and retains existing RDF query, snapshot and result-difference APIs. Full conformance remains a project target and requires the remaining implementation and verification.
